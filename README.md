@@ -2,7 +2,8 @@
 
 This is a reimplementation of [the official Android frontend of 无可奉告](https://github.com/TairanHe/SJTU-Anonymous_Forum), with the following improvements:
 
-+ A more concise and stable project structure, especially in the UI updating logic
++ A more concise structure in pure Kotlin
++ A more stable and fast behavior thanks to Android's [ViewModel](https://developer.android.com/topic/libraries/architecture/viewmodel) and Kotlin's [Coroutines](https://developer.android.com/kotlin/coroutines)
 + A more concise UI design
 + More fluent animations and transitions
 + Closer to Google's [Material Design](https://material.io/)
