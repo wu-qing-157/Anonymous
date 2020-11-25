@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <group android:id="@+id/overall_category">
+        <item
+            android:id="@+id/all"
+            android:title="所有帖子" />
+        <item
+            android:id="@+id/hot"
+            android:title="热门帖子" />
+    </group>
+    <group android:id="@+id/natural_category">
+        <item
+            android:id="@+id/sports"
+            android:title="体育" />
+        <item
+            android:id="@+id/music"
+            android:title="音乐" />
+        <item
+            android:id="@+id/science"
+            android:title="科学" />
+        <item
+            android:id="@+id/it"
+            android:title="数码" />
+        <item
+            android:id="@+id/entertain"
+            android:title="娱乐" />
+        <item
+            android:id="@+id/emotion"
+            android:title="情感" />
+        <item
+            android:id="@+id/social"
+            android:title="社会" />
+    </group>
+    <group android:id="@+id/my_related">
+        <item
+            android:id="@+id/my"
+            android:title="我的发帖" />
+        <item
+            android:id="@+id/my_reply"
+            android:title="我的回复" />
+        <item
+            android:id="@+id/my_favorite"
+            android:title="我的收藏" />
+    </group>
+</menu>

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/alice_and_bob"
+        android:title="Alice &amp; Bob" />
+    <item
+        android:id="@+id/us_president"
+        android:title="US Presidents" />
+    <item
+        android:id="@+id/tarot"
+        android:title="Tarot" />
+</menu>
