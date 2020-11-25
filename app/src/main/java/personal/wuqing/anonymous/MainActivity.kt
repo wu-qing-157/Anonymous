@@ -4,9 +4,7 @@ import android.animation.LayoutTransition
 import android.app.ActivityOptions
 import android.content.Intent
 import android.os.Bundle
-import android.transition.Fade
-import android.transition.Slide
-import android.transition.TransitionSet
+import android.transition.*
 import android.util.Pair
 import android.view.*
 import android.widget.LinearLayout
@@ -19,40 +17,41 @@ import androidx.databinding.DataBindingUtil
 import androidx.lifecycle.viewModelScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import androidx.recyclerview.widget.SimpleItemAnimator
 import com.google.android.material.snackbar.Snackbar
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import personal.wuqing.anonymous.databinding.ActivityMainBinding
 import personal.wuqing.anonymous.databinding.PostCardBinding
+import java.util.*
 import kotlin.time.ExperimentalTime
 
 @ExperimentalTime
 class MainActivity : AppCompatActivity() {
+    companion object {
+        const val NEW_POST = 1
+        const val POST_DETAIL = 2
+    }
+
     inner class BlogOnClickListener : View.OnClickListener {
         override fun onClick(v: View?) {
             val binding = DataBindingUtil.getBinding<PostCardBinding>(v!!)!!
             val intent = Intent(this@MainActivity, PostDetailActivity::class.java)
+            fun View.pair() = Pair.create(v, v.transitionName)
             val options =
                 ActivityOptions.makeSceneTransitionAnimation(
                     this@MainActivity,
-                    Pair.create(v, "post"),
-                    Pair.create(binding.avatar, "avatar"),
-                    Pair.create(binding.id, "id"),
-                    Pair.create(binding.dot, "dot"),
-                    Pair.create(binding.update, "update"),
-                    Pair.create(binding.title, "title"),
-                    Pair.create(binding.favourButton, "favour"),
-                    Pair.create(binding.content, "content"),
-                    Pair.create(binding.likeButton, "like"),
-                    Pair.create(binding.replyButton, "reply"),
-                    Pair.create(binding.readButton, "read"),
-                    Pair.create(
-                        findViewById(android.R.id.statusBarBackground),
-                        Window.STATUS_BAR_BACKGROUND_TRANSITION_NAME
-                    ),
-                    Pair.create(this@MainActivity.binding.fab, "bottom"),
+                    *binding.run {
+                        listOf(
+                            v, avatar, id, dot, update, title, favourButton, content,
+                            likeButton, replyButton, readButton, buttons,
+                            findViewById(android.R.id.statusBarBackground),
+                            this@MainActivity.binding.fab,
+                        )
+                    }.map { it.pair() }.toTypedArray()
                 )
             intent.putExtra("post", DataBindingUtil.getBinding<PostCardBinding>(v)!!.post)
+            intent.putExtra("position", v.tag as Int)
             window.exitTransition = TransitionSet().apply {
                 addTransition(Slide(Gravity.START).apply {
                     excludeTarget(R.id.appbar, true)
@@ -62,7 +61,7 @@ class MainActivity : AppCompatActivity() {
                 })
             }
             model.viewModelScope.launch {
-                startActivity(intent, options.toBundle())
+                startActivityForResult(intent, POST_DETAIL, options.toBundle())
             }
         }
     }
@@ -158,14 +157,12 @@ class MainActivity : AppCompatActivity() {
 //                    Pair.create(this@MainActivity.binding.appbar, "appbar"),
                 )
                 window.exitTransition = Fade()
-                model.viewModelScope.launch {
-                    delay(200)
-                    startActivity(intent, options.toBundle())
-                }
+                startActivityForResult(intent, NEW_POST, options.toBundle())
             }
             recycle.apply {
                 layoutManager = LinearLayoutManager(context)
                 this.adapter = adapter
+                (itemAnimator as SimpleItemAnimator).supportsChangeAnimations = false
                 addOnScrollListener(object : RecyclerView.OnScrollListener() {
                     override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
                         if (newState == RecyclerView.SCROLL_STATE_IDLE &&
@@ -232,5 +229,13 @@ class MainActivity : AppCompatActivity() {
             true
         }
         else -> false
+    }
+
+    override fun onActivityReenter(resultCode: Int, data: Intent?) {
+        if (resultCode == RESULT_OK) (data?.getSerializableExtra("post") as? Post)?.apply post@{
+            data.getIntExtra("position", 0).takeIf { it > 0 }?.let {
+                binding.recycle.adapter?.notifyItemChanged(it, this)
+            }
+        }
     }
 }

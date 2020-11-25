@@ -71,21 +71,20 @@ class ReplyAdapter(
             private val binding: ReplyCardBinding,
             private val init: ReplyCardBinding.() -> Unit
         ) : ViewHolder(binding.root) {
-            fun bind(item: Reply) {
-                binding.apply {
-                    reply = item
-                    init()
-                    executePendingBindings()
-                }
+            fun bind(item: Reply) = binding.apply {
+                reply = item
+                init()
+                executePendingBindings()
             }
         }
 
         class PostCard(
-            binding: PostCardBinding,
-            init: PostCardBinding.() -> Unit
+            private val binding: PostCardBinding,
+            private val init: PostCardBinding.() -> Unit
         ) : ViewHolder(binding.root) {
-            init {
-                binding.init()
+            fun bind() = binding.apply {
+                init()
+                executePendingBindings()
             }
         }
 
@@ -119,7 +118,16 @@ class ReplyAdapter(
     }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-        if (holder is ViewHolder.ReplyCard) holder.bind(getItem(position))
+        when (holder) {
+            is ViewHolder.ReplyCard -> holder.bind(getItem(position))
+            is ViewHolder.PostCard -> holder.bind()
+            is ViewHolder.Bottom -> Unit
+        }
+    }
+
+    override fun onBindViewHolder(holder: ViewHolder, position: Int, payloads: MutableList<Any>) {
+        if (holder is ViewHolder.PostCard && payloads.singleOrNull() is Post) holder.bind()
+        else super.onBindViewHolder(holder, position, payloads)
     }
 
     override fun getItemViewType(position: Int): Int {

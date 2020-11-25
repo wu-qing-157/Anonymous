@@ -2,11 +2,9 @@ package personal.wuqing.anonymous
 
 import android.content.Context
 import android.content.res.ColorStateList
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.FrameLayout
 import androidx.core.content.ContextCompat
 import androidx.databinding.BindingAdapter
 import androidx.lifecycle.MutableLiveData
@@ -16,6 +14,8 @@ import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.button.MaterialButton
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.json.JSONObject
@@ -88,9 +88,10 @@ class PostAdapter(
             private val binding: PostCardBinding,
             private val init: PostCardBinding.() -> Unit
         ) : ViewHolder(binding.root) {
-            fun bind(item: Post) {
+            fun bind(item: Post, position: Int) {
                 binding.apply {
                     post = item
+                    root.tag = position
                     init()
                     executePendingBindings()
                 }
@@ -136,7 +137,13 @@ class PostAdapter(
     }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-        if (holder is ViewHolder.PostCard) holder.bind(getItem(position))
+        if (holder is ViewHolder.PostCard) holder.bind(getItem(position), position)
+    }
+
+    override fun onBindViewHolder(holder: ViewHolder, position: Int, payloads: MutableList<Any>) {
+        if (holder is ViewHolder.PostCard && payloads.singleOrNull() is Post)
+            holder.bind(payloads.single() as Post, position)
+        else super.onBindViewHolder(holder, position, payloads)
     }
 
     override fun getItemViewType(position: Int): Int {
@@ -209,43 +216,54 @@ class PostListViewModel : ViewModel() {
 
     var category = Category.ALL
     val search = MutableLiveData<String>(null)
+    var refreshingJob: Job? = null
 
-    fun refresh(context: Context) = viewModelScope.launch {
-        refresh.value = true
-        delay(300)
-        try {
-            list.value = if (search.value.isNullOrBlank())
-                Network.fetchPost(category.type, category.category)
-            else Network.search(search.value!!)
-            delay(100)
-            bottom.value =
-                if (list.value.isNullOrEmpty()) BottomStatus.NO_MORE else BottomStatus.IDLE
-        } catch (e: Network.NotLoggedInException) {
-            context.needLogin()
-        } catch (e: Exception) {
-            Log.d("NetworkError", e.toString())
-            info.value = "网络错误"
-            bottom.value = BottomStatus.NETWORK_ERROR
-        } finally {
-            refresh.value = false
+    fun refresh(context: Context) {
+        refreshingJob?.cancel(CancellationException())
+        viewModelScope.launch {
+            refresh.value = true
+            delay(300)
+            try {
+                list.value =
+                    if (search.value.isNullOrBlank())
+                        Network.fetchPost(category.type, category.category)
+                    else
+                        Network.search(search.value!!)
+                delay(100)
+                bottom.value =
+                    if (list.value.isNullOrEmpty()) BottomStatus.NO_MORE else BottomStatus.IDLE
+            } catch (e: Network.NotLoggedInException) {
+                context.needLogin()
+            } catch (e: Exception) {
+                info.value = "网络错误"
+                bottom.value = BottomStatus.NETWORK_ERROR
+            } finally {
+                refresh.value = false
+            }
         }
     }
 
-    fun more(context: Context) = viewModelScope.launch {
-        bottom.value = BottomStatus.REFRESHING
-        delay(300)
-        try {
-            val last = list.value?.lastOrNull()?.id ?: "NULL"
-            val new = if (search.value.isNullOrBlank())
-                Network.fetchPost(category.type, category.category, last)
-            else Network.search(search.value!!, last)
-            list.value = list.value!! + new
-            delay(100)
-            bottom.value = if (new.isEmpty()) BottomStatus.NO_MORE else BottomStatus.IDLE
-        } catch (e: Network.NotLoggedInException) {
-            context.needLogin()
-        } catch (e: Exception) {
-            bottom.value = BottomStatus.NETWORK_ERROR
+    fun more(context: Context) {
+        refreshingJob?.cancel(CancellationException())
+        viewModelScope.launch {
+            try {
+                bottom.value = BottomStatus.REFRESHING
+                delay(300)
+                val last = list.value?.lastOrNull()?.id ?: "NULL"
+                val new = if (search.value.isNullOrBlank())
+                    Network.fetchPost(category.type, category.category, last)
+                else Network.search(search.value!!, last)
+                list.value = list.value!! + new
+                delay(100)
+                bottom.value = if (new.isEmpty()) BottomStatus.NO_MORE else BottomStatus.IDLE
+            } catch (e: Network.NotLoggedInException) {
+                context.needLogin()
+            } catch (e: Exception) {
+                bottom.value = BottomStatus.NETWORK_ERROR
+            } finally {
+                if (bottom.value == BottomStatus.REFRESHING)
+                    bottom.value = BottomStatus.NETWORK_ERROR
+            }
         }
     }
 
@@ -266,7 +284,6 @@ class PostListViewModel : ViewModel() {
         } catch (e: Network.NotLoggedInException) {
             binding.root.context.needLogin()
         } catch (e: Exception) {
-            Log.d("NetworkError", e.toString())
             info.value = "网络错误"
         }
     }
@@ -281,8 +298,8 @@ class PostListViewModel : ViewModel() {
         } catch (e: Network.NotLoggedInException) {
             binding.root.context.needLogin()
         } catch (e: Exception) {
-            Log.d("NetworkError", e.toString())
             info.value = "网络错误"
         }
     }
 }
+

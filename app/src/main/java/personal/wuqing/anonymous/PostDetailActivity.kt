@@ -1,9 +1,11 @@
 package personal.wuqing.anonymous
 
+import android.content.Intent
 import android.os.Bundle
 import android.transition.Fade
 import android.transition.Slide
 import android.transition.TransitionSet
+import android.util.Log
 import android.view.Gravity
 import android.view.View
 import android.view.inputmethod.InputMethodManager
@@ -15,6 +17,7 @@ import androidx.databinding.DataBindingUtil
 import androidx.lifecycle.LiveData
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import androidx.recyclerview.widget.SimpleItemAnimator
 import com.google.android.material.behavior.HideBottomViewOnScrollBehavior
 import com.google.android.material.snackbar.Snackbar
 import personal.wuqing.anonymous.databinding.ActivityPostBinding
@@ -69,12 +72,6 @@ class PostDetailActivity : AppCompatActivity() {
                 content.maxLines = Int.MAX_VALUE
                 likeButton.setOnClickListener { model.like(this) }
                 favourButton.setOnClickListener { model.favour(this) }
-                model.post.observe {
-                    post = it
-                    invalidateAll()
-                    executePendingBindings()
-                    id.text = it.nameG[0]
-                }
             },
             bottomInit = {
                 loadMore.setOnClickListener {
@@ -102,6 +99,7 @@ class PostDetailActivity : AppCompatActivity() {
             recycle.apply {
                 layoutManager = LinearLayoutManager(context)
                 this.adapter = adapter
+                (itemAnimator as SimpleItemAnimator).supportsChangeAnimations = false
                 addOnScrollListener(object : RecyclerView.OnScrollListener() {
                     override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
                         if (newState == RecyclerView.SCROLL_STATE_IDLE &&
@@ -116,6 +114,7 @@ class PostDetailActivity : AppCompatActivity() {
                     }
                 })
                 viewTreeObserver.addOnPreDrawListener {
+                    Log.d("predraw", adapter.itemCount.toString())
                     startPostponedEnterTransition()
                     true
                 }
@@ -127,6 +126,10 @@ class PostDetailActivity : AppCompatActivity() {
             reply.addTextChangedListener { replyHint.isCounterEnabled = !it.isNullOrBlank() }
         }
         model.apply {
+            post.observe {
+                Log.d("post", it.toString())
+                adapter.notifyItemChanged(0, it)
+            }
             list.observe { adapter.submitList(listOf(null) + it + listOf(null)) }
             refresh.observe { binding.swipeRefresh.isRefreshing = it }
             info.observe {
@@ -167,5 +170,13 @@ class PostDetailActivity : AppCompatActivity() {
             window.enterTransition = it
             window.returnTransition = it
         }
+    }
+
+    override fun finishAfterTransition() {
+        setResult(RESULT_OK, Intent().apply {
+            putExtra("post", model.post.value)
+            putExtra("position", intent.getIntExtra("position", 0))
+        })
+        super.finishAfterTransition()
     }
 }

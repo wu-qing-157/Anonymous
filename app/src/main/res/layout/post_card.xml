@@ -15,6 +15,7 @@
         android:layout_marginHorizontal="16dp"
         android:layout_marginVertical="8dp"
         android:clickable="true"
+        android:clipChildren="false"
         android:descendantFocusability="blocksDescendants"
         android:elevation="0dp"
         android:focusable="true"
@@ -26,11 +27,13 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:clipChildren="false"
             android:orientation="vertical">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:clipChildren="false"
                 android:orientation="horizontal">
 
                 <LinearLayout
@@ -57,7 +60,8 @@
 
                         <LinearLayout
                             android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
+                            android:layout_height="match_parent"
+                            android:clipChildren="false"
                             android:orientation="horizontal">
 
                             <TextView
@@ -91,7 +95,7 @@
                             android:id="@+id/title"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:maxLines="1"
+                            android:lineSpacingMultiplier="0.8"
                             android:text="@{post.title}"
                             android:textAppearance="?attr/textAppearanceSubtitle2"
                             android:textStyle="bold"
@@ -119,9 +123,10 @@
             <TextView
                 android:id="@+id/content"
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
+                android:layout_height="0dp"
                 android:layout_marginHorizontal="16dp"
                 android:layout_marginTop="6dp"
+                android:layout_weight="1"
                 android:autoLink="web|email|none"
                 android:maxLines="5"
                 android:text="@{post.content}"
@@ -129,12 +134,13 @@
                 android:textColor="?android:attr/textColorPrimary"
                 android:transitionName="content" />
 
-            <!-- Buttons -->
             <LinearLayout
+                android:id="@+id/buttons"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginHorizontal="12dp"
-                android:orientation="horizontal">
+                android:orientation="horizontal"
+                android:transitionName="buttons">
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/like_button"

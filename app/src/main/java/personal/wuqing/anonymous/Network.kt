@@ -3,7 +3,7 @@ package personal.wuqing.anonymous
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
-import java.io.IOException
+import java.net.InetSocketAddress
 import java.net.Socket
 import kotlin.random.Random
 import kotlin.time.ExperimentalTime
@@ -13,17 +13,11 @@ object Network {
     private const val IP = "172.81.215.104"
     private const val PORT = 8080
     var token = ""
-    private fun connect(data: JSONObject): JSONObject {
-        for (i in 1..100) {
-            try {
-                val socket = Socket(IP, PORT)
-                socket.getOutputStream().write(data.toString().toByteArray())
-                return JSONObject(String(socket.getInputStream().readBytes()))
-            } catch (e: IOException) {
-                if (i == 100) throw e
-            }
-        }
-        error("")
+    private fun connect(data: JSONObject) = Socket().use {
+        it.soTimeout = 20 * 1000
+        it.connect(InetSocketAddress(IP, PORT))
+        it.getOutputStream().write(data.toString().toByteArray())
+        JSONObject(String(it.getInputStream().readBytes()))
     }
 
     object NotLoggedInException : Exception()
@@ -140,7 +134,7 @@ object Network {
             p2 = category.id.toString(),
             p3 = content,
             p4 = anonymousType.id,
-            p5 = (if (random) Random.nextLong() else 0L).toString()
+            p5 = (if (random) Random.nextInt(1000000) else 0).toString()
         ) { true }
     }
 }
