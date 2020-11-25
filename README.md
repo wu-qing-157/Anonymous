@@ -23,7 +23,6 @@ But remember that this repo is *unofficial* and in *alpha-alpha* test stage.
 ### Future
 
 If some *major* change to 无可奉告 is needed in the future:
-
 + Changes will be made only to this implementation
 + This implementation will be set as the official one
 
