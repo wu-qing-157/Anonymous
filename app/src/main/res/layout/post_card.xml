@@ -94,6 +94,7 @@
                             android:maxLines="1"
                             android:text="@{post.title}"
                             android:textAppearance="?attr/textAppearanceSubtitle2"
+                            android:textStyle="bold"
                             android:transitionName="title" />
                     </LinearLayout>
                 </LinearLayout>

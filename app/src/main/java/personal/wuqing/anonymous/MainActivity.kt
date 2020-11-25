@@ -157,14 +157,7 @@ class MainActivity : AppCompatActivity() {
                     ),
 //                    Pair.create(this@MainActivity.binding.appbar, "appbar"),
                 )
-                window.exitTransition = TransitionSet().apply {
-                    addTransition(Slide(Gravity.START).apply {
-                        excludeTarget(R.id.appbar, true)
-                    })
-                    addTransition(Fade().apply {
-                        addTarget(R.id.appbar)
-                    })
-                }
+                window.exitTransition = Fade()
                 model.viewModelScope.launch {
                     delay(200)
                     startActivity(intent, options.toBundle())
