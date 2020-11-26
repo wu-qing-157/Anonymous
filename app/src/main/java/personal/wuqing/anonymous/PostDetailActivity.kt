@@ -14,11 +14,14 @@ import androidx.coordinatorlayout.widget.CoordinatorLayout
 import androidx.core.widget.addTextChangedListener
 import androidx.databinding.DataBindingUtil
 import androidx.lifecycle.LiveData
+import androidx.lifecycle.viewModelScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.SimpleItemAnimator
 import com.google.android.material.behavior.HideBottomViewOnScrollBehavior
 import com.google.android.material.snackbar.Snackbar
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import personal.wuqing.anonymous.databinding.ActivityPostBinding
 import kotlin.time.ExperimentalTime
 
@@ -51,7 +54,23 @@ class PostDetailActivity : AppCompatActivity() {
                 }
                 if (reply!!.showTo()) jump.apply {
                     setOnClickListener {
-                        binding.recycle.smoothScrollToPosition(reply!!.toFloor)
+                        model.viewModelScope.launch {
+                            if ((binding.recycle.layoutManager as LinearLayoutManager).run {
+                                    findFirstCompletelyVisibleItemPosition() > reply!!.toFloor
+                                }) binding.appbar.setExpanded(true, true)
+                            binding.recycle.smoothScrollToPosition(reply!!.toFloor)
+                            while (true) {
+                                val view = binding.recycle
+                                    .findViewHolderForLayoutPosition(reply!!.toFloor)?.itemView
+                                delay(100)
+                                (view ?: continue).apply {
+                                    isPressed = true
+                                    delay(100)
+                                    isPressed = false
+                                }
+                                break
+                            }
+                        }
                     }
                 }
                 likeButton.setOnClickListener { model.like(this) }
