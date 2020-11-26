@@ -47,7 +47,7 @@
             android:layout_gravity="bottom|end"
             android:layout_marginEnd="@dimen/fab_margin"
             android:layout_marginBottom="@dimen/fab_margin"
-            android:transitionName="new_post"
+            android:transitionName="bottom"
             app:layout_behavior="@string/hide_bottom_view_on_scroll_behavior"
             app:srcCompat="@drawable/ic_edit" />
 

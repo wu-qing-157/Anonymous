@@ -15,7 +15,9 @@ Note that this repo is currently **unofficial**, which
 
 ### Major known issues
 
-+ New post sometimes do not work properly, which may tell you "发送成功" even when it actually fails
++ Reversed reply order not supported
++ Icon of cards subject to change
++ Favor do not work properly in the post list
 
 Feel free to post your ideas in the Github [issue](https://github.com/wu-qing-157/Anonymous/issues) page.
 But remember that this repo is *unofficial* and in *alpha-alpha* test stage.

@@ -33,91 +33,69 @@
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginHorizontal="16dp"
+                android:layout_marginTop="8dp"
                 android:clipChildren="false"
                 android:orientation="horizontal">
 
-                <LinearLayout
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_marginHorizontal="16dp"
-                    android:layout_marginTop="8dp"
-                    android:layout_weight="1"
-                    android:orientation="horizontal">
-
-                    <ImageView
-                        android:id="@+id/avatar"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_gravity="center"
-                        android:transitionName="avatar"
-                        app:srcCompat="@drawable/ic_account_circle" />
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="8dp"
-                        android:orientation="vertical">
-
-                        <LinearLayout
-                            android:layout_width="wrap_content"
-                            android:layout_height="match_parent"
-                            android:clipChildren="false"
-                            android:orientation="horizontal">
-
-                            <TextView
-                                android:id="@+id/id"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="@{post.id()}"
-                                android:textAppearance="?attr/textAppearanceCaption"
-                                android:textColor="?android:attr/textColorSecondary"
-                                android:transitionName="id" />
-
-                            <TextView
-                                android:id="@+id/dot"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginHorizontal="4dp"
-                                android:text="\u2022"
-                                android:transitionName="dot" />
-
-                            <TextView
-                                android:id="@+id/update"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="@{post.update}"
-                                android:textAppearance="?attr/textAppearanceCaption"
-                                android:textColor="?android:attr/textColorSecondary"
-                                android:transitionName="update" />
-                        </LinearLayout>
-
-                        <TextView
-                            android:id="@+id/title"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:lineSpacingMultiplier="0.8"
-                            android:text="@{post.title}"
-                            android:textAppearance="?attr/textAppearanceSubtitle2"
-                            android:textStyle="bold"
-                            android:transitionName="title" />
-                    </LinearLayout>
-                </LinearLayout>
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/favour_button"
-                    style="?attr/borderlessButtonStyle"
+                <ImageView
+                    android:id="@+id/avatar"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
-                    android:layout_marginEnd="4dp"
-                    android:minWidth="0dp"
-                    android:minHeight="0dp"
-                    android:transitionName="favour"
-                    app:icon="@drawable/ic_star_rate_outlined"
-                    app:iconPadding="0dp"
-                    app:iconSize="24dp"
-                    app:postFavour="@{post}"
-                    app:rippleColor="?attr/colorControlHighlight" />
+                    android:layout_gravity="center"
+                    android:transitionName="avatar"
+                    app:srcCompat="@drawable/ic_account_circle" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:orientation="vertical">
+
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="match_parent"
+                        android:clipChildren="false"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:id="@+id/id"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@{post.id()}"
+                            android:textAppearance="?attr/textAppearanceCaption"
+                            android:textColor="?android:attr/textColorSecondary"
+                            android:transitionName="id" />
+
+                        <TextView
+                            android:id="@+id/dot"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginHorizontal="4dp"
+                            android:text="\u2022"
+                            android:transitionName="dot" />
+
+                        <TextView
+                            android:id="@+id/update"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@{post.update}"
+                            android:textAppearance="?attr/textAppearanceCaption"
+                            android:textColor="?android:attr/textColorSecondary"
+                            android:transitionName="update" />
+                    </LinearLayout>
+
+                    <TextView
+                        android:id="@+id/title"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:lineSpacingMultiplier="0.9"
+                        android:text="@{post.title}"
+                        android:textAppearance="?attr/textAppearanceSubtitle1"
+                        android:textStyle="bold"
+                        android:transitionName="title" />
+                </LinearLayout>
             </LinearLayout>
 
             <TextView
@@ -172,6 +150,21 @@
                     app:icon="@drawable/ic_textmsm_outlined"
                     app:iconSize="16dp"
                     app:iconTint="?android:attr/textColorSecondary"
+                    app:rippleColor="?attr/colorControlHighlight" />
+
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/favour_button"
+                    style="?attr/borderlessButtonStyle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:minWidth="0dp"
+                    android:minHeight="0dp"
+                    android:transitionName="favour"
+                    app:icon="@drawable/ic_favorite_border"
+                    app:iconPadding="0dp"
+                    app:iconSize="16dp"
+                    app:postFavour="@{post}"
                     app:rippleColor="?attr/colorControlHighlight" />
 
                 <Space

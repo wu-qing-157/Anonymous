@@ -82,10 +82,7 @@ class ReplyAdapter(
             private val binding: PostCardBinding,
             private val init: PostCardBinding.() -> Unit
         ) : ViewHolder(binding.root) {
-            fun bind() = binding.apply {
-                init()
-                executePendingBindings()
-            }
+            fun bind() = binding.init()
         }
 
         class Bottom(

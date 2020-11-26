@@ -36,17 +36,6 @@
                     android:visibility="visible" />
 
             </com.google.android.material.appbar.MaterialToolbar>
-
-            <!--            <ProgressBar-->
-            <!--                android:id="@+id/progress"-->
-            <!--                style="@style/Widget.AppCompat.ProgressBar.Horizontal"-->
-            <!--                android:layout_width="match_parent"-->
-            <!--                android:layout_height="wrap_content"-->
-            <!--                android:layout_marginTop="-6dp"-->
-            <!--                android:layout_marginBottom="-6dp"-->
-            <!--                android:background="?attr/colorPrimary"-->
-            <!--                android:indeterminate="true"-->
-            <!--                android:visibility="invisible" />-->
         </com.google.android.material.appbar.AppBarLayout>
 
         <LinearLayout
@@ -54,7 +43,7 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:orientation="vertical"
-            android:transitionName="new_post"
+            android:transitionName="bottom"
             app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
             <LinearLayout
@@ -217,7 +206,6 @@
                     android:maxLength="817"
                     android:minLines="5" />
             </com.google.android.material.textfield.TextInputLayout>
-
         </LinearLayout>
     </androidx.coordinatorlayout.widget.CoordinatorLayout>
 </layout>

@@ -188,8 +188,8 @@ fun MaterialButton.postFavour(item: Post) {
         else
             0x777777 + (0xff shl 24)
     )
-    icon = if (item.favoured) ContextCompat.getDrawable(context, R.drawable.ic_star_rate)
-    else ContextCompat.getDrawable(context, R.drawable.ic_star_rate_outlined)
+    icon = if (item.favoured) ContextCompat.getDrawable(context, R.drawable.ic_favorite)
+    else ContextCompat.getDrawable(context, R.drawable.ic_favorite_border)
 }
 
 @ExperimentalTime

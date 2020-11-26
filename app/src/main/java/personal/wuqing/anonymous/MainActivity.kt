@@ -37,14 +37,13 @@ class MainActivity : AppCompatActivity() {
         override fun onClick(v: View?) {
             val binding = DataBindingUtil.getBinding<PostCardBinding>(v!!)!!
             val intent = Intent(this@MainActivity, PostDetailActivity::class.java)
-            fun View.pair() = Pair.create(v, v.transitionName)
+            fun View.pair() = Pair.create(this, this.transitionName)
             val options =
                 ActivityOptions.makeSceneTransitionAnimation(
                     this@MainActivity,
                     *binding.run {
                         listOf(
-                            v, avatar, id, dot, update, title, favourButton, content,
-                            likeButton, replyButton, readButton, buttons,
+                            v, id, update,
                             findViewById(android.R.id.statusBarBackground),
                             this@MainActivity.binding.fab,
                         )

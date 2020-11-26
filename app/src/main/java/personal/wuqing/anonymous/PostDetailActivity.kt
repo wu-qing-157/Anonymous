@@ -5,7 +5,6 @@ import android.os.Bundle
 import android.transition.Fade
 import android.transition.Slide
 import android.transition.TransitionSet
-import android.util.Log
 import android.view.Gravity
 import android.view.View
 import android.view.inputmethod.InputMethodManager
@@ -72,6 +71,8 @@ class PostDetailActivity : AppCompatActivity() {
                 content.maxLines = Int.MAX_VALUE
                 likeButton.setOnClickListener { model.like(this) }
                 favourButton.setOnClickListener { model.favour(this) }
+                executePendingBindings()
+                id.text = post!!.nameG[0]
             },
             bottomInit = {
                 loadMore.setOnClickListener {
@@ -114,7 +115,6 @@ class PostDetailActivity : AppCompatActivity() {
                     }
                 })
                 viewTreeObserver.addOnPreDrawListener {
-                    Log.d("predraw", adapter.itemCount.toString())
                     startPostponedEnterTransition()
                     true
                 }
@@ -127,7 +127,6 @@ class PostDetailActivity : AppCompatActivity() {
         }
         model.apply {
             post.observe {
-                Log.d("post", it.toString())
                 adapter.notifyItemChanged(0, it)
             }
             list.observe { adapter.submitList(listOf(null) + it + listOf(null)) }
