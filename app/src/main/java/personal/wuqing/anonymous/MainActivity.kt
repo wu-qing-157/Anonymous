@@ -148,7 +148,7 @@ class MainActivity : AppCompatActivity() {
                 val intent = Intent(this@MainActivity, NewPostActivity::class.java)
                 val options = ActivityOptions.makeSceneTransitionAnimation(
                     this@MainActivity,
-                    Pair.create(binding.fab, "new_post"),
+                    Pair.create(binding.fab, "bottom"),
                     Pair.create(
                         findViewById(android.R.id.statusBarBackground),
                         Window.STATUS_BAR_BACKGROUND_TRANSITION_NAME
