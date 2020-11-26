@@ -17,7 +17,7 @@ object Network {
         it.soTimeout = 20 * 1000
         it.connect(InetSocketAddress(IP, PORT))
         it.getOutputStream().write(data.toString().toByteArray())
-        JSONObject(String(it.getInputStream().readBytes()))
+        JSONObject(it.getInputStream().bufferedReader().readLine())
     }
 
     object NotLoggedInException : Exception()
@@ -87,7 +87,13 @@ object Network {
         withContext(Dispatchers.IO) {
             getData(op = type.op, p1 = last, p2 = category.id.toString()) {
                 getJSONArray("thread_list").let {
-                    (0 until it.length()).map { i -> Post(it.getJSONObject(i)) }
+                    (0 until it.length()).map { i ->
+                        getData(
+                            op = "2", p1 = it.getJSONObject(i).getString("ThreadID"), p2 = "NULL"
+                        ) {
+                            Post(getJSONObject("this_thread"))
+                        }
+                    }
                 }
             }
         }

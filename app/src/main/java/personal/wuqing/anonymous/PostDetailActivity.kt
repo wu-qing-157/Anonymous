@@ -83,7 +83,7 @@ class PostDetailActivity : AppCompatActivity() {
                     binding.recycle.smoothScrollToPosition(0)
                 }
                 networkError.setOnClickListener {
-                    model.refresh(this@PostDetailActivity)
+                    model.more(this@PostDetailActivity)
                 }
                 model.bottom.observe {
                     fun v(b: Boolean) = if (b) View.VISIBLE else View.INVISIBLE

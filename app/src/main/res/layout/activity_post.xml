@@ -85,14 +85,15 @@
                     android:layout_height="wrap_content"
                     android:layout_gravity="center"
                     android:layout_marginHorizontal="16dp"
+                    android:enabled="false"
                     android:minWidth="0dp"
                     app:icon="@drawable/ic_send"
                     app:iconPadding="0dp" />
 
                 <ProgressBar
                     android:id="@+id/reply_progress"
-                    android:layout_width="16dp"
-                    android:layout_height="16dp"
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
                     android:layout_gravity="center"
                     android:translationZ="100dp" />
             </androidx.coordinatorlayout.widget.CoordinatorLayout>

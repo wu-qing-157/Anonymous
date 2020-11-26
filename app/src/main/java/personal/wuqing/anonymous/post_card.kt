@@ -2,6 +2,7 @@ package personal.wuqing.anonymous
 
 import android.content.Context
 import android.content.res.ColorStateList
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -259,6 +260,7 @@ class PostListViewModel : ViewModel() {
             } catch (e: Network.NotLoggedInException) {
                 context.needLogin()
             } catch (e: Exception) {
+                Log.e("network_error", e.toString())
                 bottom.value = BottomStatus.NETWORK_ERROR
             } finally {
                 if (bottom.value == BottomStatus.REFRESHING)

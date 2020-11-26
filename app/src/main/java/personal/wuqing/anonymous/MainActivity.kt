@@ -128,7 +128,7 @@ class MainActivity : AppCompatActivity() {
                     binding.recycle.smoothScrollToPosition(0)
                 }
                 networkError.setOnClickListener {
-                    model.refresh(this@MainActivity)
+                    model.more(this@MainActivity)
                 }
                 model.bottom.observe(this@MainActivity) {
                     fun v(b: Boolean) = if (b) View.VISIBLE else View.INVISIBLE
