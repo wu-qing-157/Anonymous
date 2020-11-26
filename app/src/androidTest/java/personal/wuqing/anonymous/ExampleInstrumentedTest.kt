@@ -50,7 +50,7 @@ class ExampleInstrumentedTest {
                                 false
                             )
                             val posts = Network.fetchPost(type, Post.Category.ALL, "NULL")
-                            Network.favourPost(posts.first().id)
+                            Network.favorPost(posts.first().id)
                         }.toDouble() / 1000)
                     )
                 } catch (e: Exception) {

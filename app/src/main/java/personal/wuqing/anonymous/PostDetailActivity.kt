@@ -70,7 +70,7 @@ class PostDetailActivity : AppCompatActivity() {
                 title.maxLines = Int.MAX_VALUE
                 content.maxLines = Int.MAX_VALUE
                 likeButton.setOnClickListener { model.like(this) }
-                favourButton.setOnClickListener { model.favour(this) }
+                favourButton.setOnClickListener { model.favor(this) }
                 executePendingBindings()
                 id.text = post!!.nameG[0]
             },

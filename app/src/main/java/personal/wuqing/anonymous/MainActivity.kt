@@ -81,7 +81,7 @@ class MainActivity : AppCompatActivity() {
             postInit = {
                 root.setOnClickListener(BlogOnClickListener())
                 likeButton.setOnClickListener { model.like(this) }
-                favourButton.setOnClickListener { model.favour(this) }
+                favourButton.setOnClickListener { model.favor(this) }
             },
             filterInit = {
                 category.setOnClickListener {

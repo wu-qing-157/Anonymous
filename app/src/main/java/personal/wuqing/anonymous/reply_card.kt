@@ -174,12 +174,15 @@ class ReplyListViewModel : ViewModel() {
     var bottom = MutableLiveData(BottomStatus.REFRESHING)
     val sending = MutableLiveData(false)
     val success = MutableLiveData(false)
+    private var last = "NULL"
 
     fun refresh(context: Context) = viewModelScope.launch {
         refresh.value = true
         delay(300)
         try {
-            val (newPost, newList) = Network.fetchReply(post.value!!.id)
+            val (pair, newList) = Network.fetchReply(post.value!!.id)
+            val (last, newPost) = pair
+            this@ReplyListViewModel.last = last
             post.value = newPost
             list.value = newList
             delay(100)
@@ -199,8 +202,9 @@ class ReplyListViewModel : ViewModel() {
         bottom.value = BottomStatus.REFRESHING
         delay(300)
         try {
-            val last = list.value?.lastOrNull()?.id ?: "NULL"
-            val (newPost, newList) = Network.fetchReply(post.value!!.id, last)
+            val (pair, newList) = Network.fetchReply(post.value!!.id, last)
+            val (last, newPost) = pair
+            this@ReplyListViewModel.last = last
             post.value = newPost
             list.value = list.value!! + newList
             delay(100)
@@ -273,10 +277,10 @@ class ReplyListViewModel : ViewModel() {
         }
     }
 
-    fun favour(binding: PostCardBinding) = viewModelScope.launch {
+    fun favor(binding: PostCardBinding) = viewModelScope.launch {
         try {
             binding.post?.apply {
-                if (favor) Network.deFavourPost(id) else Network.favourPost(id)
+                if (favor) Network.deFavorPost(id) else Network.favorPost(id)
                 favor = !favor
             }
             binding.invalidateAll()

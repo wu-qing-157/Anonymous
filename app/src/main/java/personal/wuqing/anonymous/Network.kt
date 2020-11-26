@@ -71,11 +71,11 @@ object Network {
         getData(op = "8_4", p1 = id) { true }
     }
 
-    suspend fun favourPost(id: String) = withContext(Dispatchers.IO) {
+    suspend fun favorPost(id: String) = withContext(Dispatchers.IO) {
         getData(op = "5", p1 = id) { true }
     }
 
-    suspend fun deFavourPost(id: String) = withContext(Dispatchers.IO) {
+    suspend fun deFavorPost(id: String) = withContext(Dispatchers.IO) {
         getData(op = "5_2", p1 = id) { true }
     }
 
@@ -86,7 +86,9 @@ object Network {
     suspend fun fetchPost(type: PostType, category: Post.Category, last: String = "NULL") =
         withContext(Dispatchers.IO) {
             getData(op = type.op, p1 = last, p2 = category.id.toString()) {
-                getJSONArray("thread_list").let {
+                var lastSeen = "NULL"
+                for (key in keys()) if (key.startsWith("LastSeen")) lastSeen = getString(key)
+                lastSeen to getJSONArray("thread_list").let {
                     (0 until it.length()).map { i ->
                         getData(
                             op = "2", p1 = it.getJSONObject(i).getString("ThreadID"), p2 = "NULL"
@@ -100,7 +102,9 @@ object Network {
 
     suspend fun search(keyword: String, last: String = "NULL") = withContext(Dispatchers.IO) {
         getData(op = "b", p1 = keyword, p2 = last) {
-            getJSONArray("thread_list").let {
+            var lastSeen = "NULL"
+            for (key in keys()) if (key.startsWith("LastSeen")) lastSeen = getString(key)
+            lastSeen to getJSONArray("thread_list").let {
                 (0 until it.length()).map { i -> Post(it.getJSONObject(i)) }
             }
         }
@@ -109,7 +113,9 @@ object Network {
     suspend fun fetchReply(postId: String, last: String = "NULL") = withContext(Dispatchers.IO) {
         getData(op = "2", p1 = postId, p2 = last) {
             val post = Post(getJSONObject("this_thread"))
-            post to getJSONArray("floor_list").let {
+            var newLast = "NULL"
+            for (key in keys()) if (key.startsWith("LastSeen")) newLast = getString(key)
+            newLast to post to getJSONArray("floor_list").let {
                 (0 until it.length()).map { i ->
                     Reply(it.getJSONObject(i), post.nameG, post.colorG)
                 }

@@ -257,6 +257,7 @@ class PostListViewModel : ViewModel() {
     var category = Category.ALL
     val search = MutableLiveData<String>(null)
     var refreshingJob: Job? = null
+    private var last = "NULL"
 
     fun refresh(context: Context) {
         refreshingJob?.cancel(CancellationException())
@@ -264,11 +265,13 @@ class PostListViewModel : ViewModel() {
             refresh.value = true
             delay(300)
             try {
-                list.value =
+                val (last, newList) =
                     if (search.value.isNullOrBlank())
                         Network.fetchPost(category.type, category.category)
                     else
                         Network.search(search.value!!)
+                this@PostListViewModel.last = last
+                list.value = newList
                 delay(100)
                 bottom.value =
                     if (list.value.isNullOrEmpty()) BottomStatus.NO_MORE else BottomStatus.IDLE
@@ -289,10 +292,12 @@ class PostListViewModel : ViewModel() {
             try {
                 bottom.value = BottomStatus.REFRESHING
                 delay(300)
-                val last = list.value?.lastOrNull()?.id ?: "NULL"
-                val new = if (search.value.isNullOrBlank())
-                    Network.fetchPost(category.type, category.category, last)
-                else Network.search(search.value!!, last)
+                val (last, new) =
+                    if (search.value.isNullOrBlank())
+                        Network.fetchPost(category.type, category.category, last)
+                    else
+                        Network.search(search.value!!, last)
+                this@PostListViewModel.last = last
                 list.value = list.value!! + new
                 delay(100)
                 bottom.value = if (new.isEmpty()) BottomStatus.NO_MORE else BottomStatus.IDLE
@@ -329,10 +334,10 @@ class PostListViewModel : ViewModel() {
         }
     }
 
-    fun favour(binding: PostCardBinding) = viewModelScope.launch {
+    fun favor(binding: PostCardBinding) = viewModelScope.launch {
         try {
             binding.post?.apply {
-                if (favor) Network.deFavourPost(id) else Network.favourPost(id)
+                if (favor) Network.deFavorPost(id) else Network.favorPost(id)
                 favor = !favor
             }
             binding.invalidateAll()
