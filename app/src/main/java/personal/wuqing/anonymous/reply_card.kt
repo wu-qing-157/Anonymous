@@ -2,19 +2,18 @@ package personal.wuqing.anonymous
 
 import android.content.Context
 import android.content.res.ColorStateList
+import android.util.TypedValue
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.EditText
 import androidx.core.content.ContextCompat
-import androidx.databinding.BindingAdapter
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
-import com.google.android.material.button.MaterialButton
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.json.JSONObject
@@ -29,16 +28,18 @@ data class Reply constructor(
     val id: String,
     val update: String,
     val name: String,
+    val avatar: Int,
     val content: String,
     var like: Boolean,
     var likeCount: Int,
     val toName: String,
     val toFloor: Int
 ) : Serializable {
-    constructor(json: JSONObject, nameG: NameG) : this(
+    constructor(json: JSONObject, nameG: NameG, colorG: ColorG) : this(
         id = json.getString("FloorID"),
         update = json.getString("RTime").untilNow().display(),
         name = nameG[json.getString("Speakername").toInt()],
+        avatar = colorG[json.getString("Speakername").toInt()],
         content = json.getString("Context"),
         like = json.getInt("WhetherLike") == 1,
         likeCount = json.getInt("Like"),
@@ -46,12 +47,29 @@ data class Reply constructor(
         toFloor = json.getInt("Replytofloor"),
     )
 
+    fun avatarC() = name.split(" ").last()[0].toString()
     fun id() = "#$id"
     fun likeCount() = likeCount.toString()
     fun showTo() = toFloor != 0
     fun showReply() = if (showTo()) "回复" else ""
     fun toName() = if (showTo()) toName else ""
     fun toFloor() = if (showTo()) "#$toFloor" else ""
+    fun likeIcon(context: Context) = ContextCompat.getDrawable(
+        context, if (like) R.drawable.ic_thumb_up else R.drawable.ic_thumb_up_outlined
+    )
+
+    @ExperimentalUnsignedTypes
+    fun likeIconTint(context: Context) = ColorStateList.valueOf(
+        if (like) TypedValue().run {
+            context.theme.resolveAttribute(R.attr.colorPrimary, this, true)
+            data
+        } else TypedValue().run {
+            context.theme.resolveAttribute(android.R.attr.textColorSecondary, this, true)
+            data.toString(16).padStart(3, '0').toCharArray()
+                .joinToString("", prefix = "ff") { "$it$it" }
+                .toUInt(16).toInt()
+        }
+    )
 }
 
 @ExperimentalTime
@@ -145,19 +163,6 @@ object ReplyDiffCallback : DiffUtil.ItemCallback<Reply>() {
     override fun areContentsTheSame(oldItem: Reply, newItem: Reply): Boolean {
         return oldItem == newItem
     }
-}
-
-@ExperimentalTime
-@BindingAdapter("replyLike")
-fun MaterialButton.replyLike(item: Reply) {
-    iconTint = ColorStateList.valueOf(
-        if (item.like)
-            ContextCompat.getColor(context, R.color.design_default_color_primary)
-        else
-            0x777777 + (0xff shl 24)
-    )
-    icon = if (item.like) ContextCompat.getDrawable(context, R.drawable.ic_thumb_up)
-    else ContextCompat.getDrawable(context, R.drawable.ic_thumb_up_outlined)
 }
 
 @ExperimentalTime
@@ -271,8 +276,8 @@ class ReplyListViewModel : ViewModel() {
     fun favour(binding: PostCardBinding) = viewModelScope.launch {
         try {
             binding.post?.apply {
-                if (favoured) Network.deFavourPost(id) else Network.favourPost(id)
-                favoured = !favoured
+                if (favor) Network.deFavourPost(id) else Network.favourPost(id)
+                favor = !favor
             }
             binding.invalidateAll()
         } catch (e: Network.NotLoggedInException) {

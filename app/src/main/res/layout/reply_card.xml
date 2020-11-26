@@ -41,11 +41,19 @@
                     android:layout_weight="1"
                     android:orientation="horizontal">
 
-                    <ImageView
+                    <TextView
+                        android:id="@+id/avatar"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_gravity="center"
-                        app:srcCompat="@drawable/ic_account_circle" />
+                        android:background="@drawable/ic_circle"
+                        android:backgroundTint="@{reply.avatar}"
+                        android:fontFamily="serif-monospace"
+                        android:gravity="center"
+                        android:text="@{reply.avatarC()}"
+                        android:textAlignment="center"
+                        android:textColor="@color/black"
+                        android:textStyle="bold" />
 
                     <LinearLayout
                         android:id="@+id/jump"
@@ -134,10 +142,10 @@
                     android:textAlignment="textEnd"
                     android:textColor="?android:attr/textColorSecondary"
                     android:textSize="12sp"
-                    app:icon="@drawable/ic_thumb_up_outlined"
+                    app:icon="@{reply.likeIcon(context)}"
                     app:iconGravity="end"
                     app:iconSize="16dp"
-                    app:replyLike="@{reply}"
+                    app:iconTint="@{reply.likeIconTint(context)}"
                     app:rippleColor="?attr/colorControlHighlight" />
             </LinearLayout>
 

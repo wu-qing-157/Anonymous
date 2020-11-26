@@ -1,5 +1,6 @@
 package personal.wuqing.anonymous
 
+import androidx.core.graphics.toColorInt
 import java.io.Serializable
 import java.text.SimpleDateFormat
 import java.util.*
@@ -72,6 +73,11 @@ data class NameG(val theme: NameTheme, val seed: Long) : Serializable {
             else -> NameTheme.ALICE_AND_BOB
         }, seed
     )
+}
+
+data class ColorG(val seed: Long) : Serializable {
+    private val list = colors.toMutableList().apply { shuffle(seed) }
+    operator fun get(i: Int) = list[i % list.size]
 }
 
 val names = mapOf(
@@ -174,3 +180,7 @@ val names = mapOf(
         "The World",
     )
 )
+
+val colors = listOf("5ebd3e", "ffb900", "f78200", "e23838", "973999", "009cdf").map {
+    "#aa$it".toColorInt()
+}

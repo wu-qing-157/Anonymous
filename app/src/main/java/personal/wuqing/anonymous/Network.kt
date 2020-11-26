@@ -110,7 +110,9 @@ object Network {
         getData(op = "2", p1 = postId, p2 = last) {
             val post = Post(getJSONObject("this_thread"))
             post to getJSONArray("floor_list").let {
-                (0 until it.length()).map { i -> Reply(it.getJSONObject(i), post.nameG) }
+                (0 until it.length()).map { i ->
+                    Reply(it.getJSONObject(i), post.nameG, post.colorG)
+                }
             }
         }
     }

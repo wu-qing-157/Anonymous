@@ -3,6 +3,7 @@ package personal.wuqing.anonymous
 import android.content.Context
 import android.content.res.ColorStateList
 import android.util.Log
+import android.util.TypedValue
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -36,8 +37,9 @@ data class Post constructor(
     var like: Boolean,
     var likeCount: Int,
     val replyCount: Int,
-    var favoured: Boolean,
+    var favor: Boolean,
     val readCount: Int,
+    val colorG: ColorG,
     val nameG: NameG,
 ) : Serializable {
     constructor(json: JSONObject) : this(
@@ -49,15 +51,52 @@ data class Post constructor(
         like = json.getInt("WhetherLike") == 1,
         likeCount = json.getInt("Like"),
         replyCount = json.getInt("Comment"),
-        favoured = json.has("WhetherFavour") && json.getInt("WhetherFavour") == 1,
+        favor = json.has("WhetherFavour") && json.getInt("WhetherFavour") == 1,
         readCount = json.getInt("Read"),
-        nameG = NameG(json.getString("AnonymousType"), json.getLong("RandomSeed"))
+        colorG = ColorG(json.getLong("RandomSeed")),
+        nameG = NameG(json.getString("AnonymousType"), json.getLong("RandomSeed")),
     )
+
+    val avatar = colorG[0]
+    fun avatarC() = nameG[0].split(" ").last()[0].toString()
 
     fun id() = "#$id"
     fun likeCount() = likeCount.toString()
     fun replyCount() = replyCount.toString()
     fun readCount() = readCount.toString()
+
+    @ExperimentalUnsignedTypes
+    private fun iconTint(context: Context, boolean: Boolean) = ColorStateList.valueOf(
+        if (boolean) TypedValue().run {
+            context.theme.resolveAttribute(R.attr.colorPrimary, this, true)
+            data
+        } else TypedValue().run {
+            context.theme.resolveAttribute(android.R.attr.textColorSecondary, this, true)
+            data.toString(16).padStart(3, '0').toCharArray()
+                .joinToString("", prefix = "ff") { "$it$it" }
+                .toUInt(16).toInt()
+        }
+    )
+
+    fun likeIcon(context: Context) = ContextCompat.getDrawable(
+        context, if (like) R.drawable.ic_thumb_up else R.drawable.ic_thumb_up_outlined
+    )
+
+    fun favorIcon(context: Context) = ContextCompat.getDrawable(
+        context, if (favor) R.drawable.ic_favorite else R.drawable.ic_favorite_border
+    )
+
+    @ExperimentalUnsignedTypes
+    fun likeIconTint(context: Context) = iconTint(context, like)
+
+    @ExperimentalUnsignedTypes
+    fun favorIconTint(context: Context) = iconTint(context, favor)
+
+    @ExperimentalUnsignedTypes
+    fun replyIconTint(context: Context) = iconTint(context, false)
+
+    @ExperimentalUnsignedTypes
+    fun readIconTint(context: Context) = iconTint(context, false)
 
     enum class Category(val id: Int) {
         ALL(0),
@@ -184,12 +223,12 @@ fun MaterialButton.postLike(item: Post) {
 @BindingAdapter("postFavour")
 fun MaterialButton.postFavour(item: Post) {
     iconTint = ColorStateList.valueOf(
-        if (item.favoured)
+        if (item.favor)
             ContextCompat.getColor(context, R.color.design_default_color_primary)
         else
             0x777777 + (0xff shl 24)
     )
-    icon = if (item.favoured) ContextCompat.getDrawable(context, R.drawable.ic_favorite)
+    icon = if (item.favor) ContextCompat.getDrawable(context, R.drawable.ic_favorite)
     else ContextCompat.getDrawable(context, R.drawable.ic_favorite_border)
 }
 
@@ -293,8 +332,8 @@ class PostListViewModel : ViewModel() {
     fun favour(binding: PostCardBinding) = viewModelScope.launch {
         try {
             binding.post?.apply {
-                if (favoured) Network.deFavourPost(id) else Network.favourPost(id)
-                favoured = !favoured
+                if (favor) Network.deFavourPost(id) else Network.favourPost(id)
+                favor = !favor
             }
             binding.invalidateAll()
         } catch (e: Network.NotLoggedInException) {

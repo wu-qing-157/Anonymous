@@ -38,13 +38,19 @@
                 android:clipChildren="false"
                 android:orientation="horizontal">
 
-                <ImageView
+                <TextView
                     android:id="@+id/avatar"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_gravity="center"
-                    android:transitionName="avatar"
-                    app:srcCompat="@drawable/ic_account_circle" />
+                    android:background="@drawable/ic_circle"
+                    android:backgroundTint="@{post.avatar}"
+                    android:fontFamily="serif-monospace"
+                    android:gravity="center"
+                    android:text="@{post.avatarC()}"
+                    android:textAlignment="center"
+                    android:textColor="@color/black"
+                    android:textStyle="bold" />
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -130,9 +136,9 @@
                     android:textColor="?android:attr/textColorSecondary"
                     android:textSize="12sp"
                     android:transitionName="like"
-                    app:icon="@drawable/ic_thumb_up_outlined"
+                    app:icon="@{post.likeIcon(context)}"
                     app:iconSize="16dp"
-                    app:postLike="@{post}"
+                    app:iconTint="@{post.likeIconTint(context)}"
                     app:rippleColor="?attr/colorControlHighlight" />
 
                 <com.google.android.material.button.MaterialButton
@@ -148,7 +154,7 @@
                     android:transitionName="reply"
                     app:icon="@drawable/ic_textmsm_outlined"
                     app:iconSize="16dp"
-                    app:iconTint="?android:attr/textColorSecondary"
+                    app:iconTint="@{post.replyIconTint(context)}"
                     app:rippleColor="?attr/colorControlHighlight" />
 
 
@@ -160,10 +166,10 @@
                     android:minWidth="0dp"
                     android:minHeight="0dp"
                     android:transitionName="favour"
-                    app:icon="@drawable/ic_favorite_border"
+                    app:icon="@{post.favorIcon(context)}"
                     app:iconPadding="0dp"
                     app:iconSize="16dp"
-                    app:postFavour="@{post}"
+                    app:iconTint="@{post.favorIconTint(context)}"
                     app:rippleColor="?attr/colorControlHighlight" />
 
                 <Space
@@ -186,7 +192,7 @@
                     app:icon="@drawable/ic_remove_red_eye"
                     app:iconGravity="end"
                     app:iconSize="16dp"
-                    app:iconTint="?android:attr/textColorSecondary"
+                    app:iconTint="@{post.readIconTint(context)}"
                     app:rippleColor="?attr/colorControlHighlight" />
             </LinearLayout>
 
