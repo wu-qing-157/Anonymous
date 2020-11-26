@@ -50,11 +50,11 @@
                 android:id="@+id/category_row"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginHorizontal="16dp"
                 android:background="?attr/selectableItemBackground"
                 android:clickable="true"
                 android:focusable="true"
-                android:orientation="horizontal">
+                android:orientation="horizontal"
+                android:paddingHorizontal="16dp">
 
                 <com.google.android.material.textview.MaterialTextView
                     android:layout_width="wrap_content"
@@ -81,6 +81,7 @@
                     android:textColor="?android:attr/textColorSecondary"
                     app:icon="@drawable/ic_more_vert"
                     app:iconGravity="end"
+                    app:iconPadding="8dp"
                     app:iconSize="16dp"
                     app:iconTint="?android:attr/textColorSecondary"
                     app:rippleColor="?attr/colorControlHighlight" />
@@ -95,10 +96,11 @@
                 android:id="@+id/theme_row"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginHorizontal="16dp"
+                android:background="?attr/selectableItemBackground"
                 android:clickable="true"
                 android:focusable="true"
-                android:orientation="horizontal">
+                android:orientation="horizontal"
+                android:paddingHorizontal="16dp">
 
                 <com.google.android.material.textview.MaterialTextView
                     android:layout_width="wrap_content"
@@ -125,6 +127,7 @@
                     android:textColor="?android:attr/textColorSecondary"
                     app:icon="@drawable/ic_more_vert"
                     app:iconGravity="end"
+                    app:iconPadding="8dp"
                     app:iconSize="16dp"
                     app:iconTint="?android:attr/textColorSecondary"
                     app:rippleColor="?attr/colorControlHighlight" />
@@ -139,11 +142,11 @@
                 android:id="@+id/shuffle_row"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginHorizontal="16dp"
                 android:background="?attr/selectableItemBackground"
                 android:clickable="true"
                 android:focusable="true"
-                android:orientation="horizontal">
+                android:orientation="horizontal"
+                android:paddingHorizontal="16dp">
 
                 <com.google.android.material.textview.MaterialTextView
                     android:layout_width="wrap_content"
@@ -174,6 +177,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginHorizontal="16dp"
+                android:layout_marginTop="12dp"
                 android:hint="标题"
                 app:counterEnabled="true"
                 app:counterMaxLength="40">
