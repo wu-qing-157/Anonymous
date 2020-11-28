@@ -10,14 +10,16 @@ import kotlin.time.ExperimentalTime
 
 @ExperimentalTime
 object Network {
-    private const val IP = "172.81.215.104"
+    private const val IP = "182.254.145.254"
     private const val PORT = 8080
     var token = ""
     private fun connect(data: JSONObject) = Socket().use {
         it.soTimeout = 20 * 1000
         it.connect(InetSocketAddress(IP, PORT))
         it.getOutputStream().write(data.toString().toByteArray())
-        JSONObject(it.getInputStream().bufferedReader().readLine())
+        JSONObject(it.getInputStream().bufferedReader().readLine().run {
+            if (endsWith('}')) this else "$this}"
+        })
     }
 
     object NotLoggedInException : Exception()
@@ -93,7 +95,7 @@ object Network {
                         getData(
                             op = "2", p1 = it.getJSONObject(i).getString("ThreadID"), p2 = "NULL"
                         ) {
-                            Post(getJSONObject("this_thread"))
+                            Post(getJSONObject("this_thread"), false)
                         }
                     }
                 }
@@ -105,14 +107,14 @@ object Network {
             var lastSeen = "NULL"
             for (key in keys()) if (key.startsWith("LastSeen")) lastSeen = getString(key)
             lastSeen to getJSONArray("thread_list").let {
-                (0 until it.length()).map { i -> Post(it.getJSONObject(i)) }
+                (0 until it.length()).map { i -> Post(it.getJSONObject(i), false) }
             }
         }
     }
 
     suspend fun fetchReply(postId: String, last: String = "NULL") = withContext(Dispatchers.IO) {
         getData(op = "2", p1 = postId, p2 = last) {
-            val post = Post(getJSONObject("this_thread"))
+            val post = Post(getJSONObject("this_thread"), true)
             var newLast = "NULL"
             for (key in keys()) if (key.startsWith("LastSeen")) newLast = getString(key)
             newLast to post to getJSONArray("floor_list").let {

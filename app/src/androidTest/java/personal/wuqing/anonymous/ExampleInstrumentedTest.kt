@@ -1,6 +1,7 @@
 package personal.wuqing.anonymous
 
 import android.util.Log
+import android.util.Patterns
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import kotlinx.coroutines.GlobalScope
@@ -29,38 +30,12 @@ class ExampleInstrumentedTest {
 
     @Test
     fun m() {
-        println("shabi")
         Log.d("tryshabi", "tried")
     }
 
     @Test
     fun sendEmail() {
-        var cnt = 0
-        fun test(des: String, type: Network.PostType) = Thread {
-            GlobalScope.launch {
-                for (j in 1..10000) try {
-                    Log.d(
-                        "ServerDelayTest_$des",
-                        String.format("%d: %.3f ms", ++cnt, measureTimeMillis {
-                            Network.post(
-                                UUID.randomUUID().toString(),
-                                Post.Category.SOCIAL,
-                                UUID.randomUUID().toString(),
-                                NameTheme.US_PRESIDENT,
-                                false
-                            )
-                            val posts = Network.fetchPost(type, Post.Category.ALL, "NULL")
-                            Network.favorPost(posts.first().id)
-                        }.toDouble() / 1000)
-                    )
-                } catch (e: Exception) {
-                    Log.d("ServerDelayTest", e.toString())
-                }
-            }
-        }.start()
-        repeat(10) { test("Fetch", Network.PostType.TIME) }
-        repeat(2) { test("My", Network.PostType.MY) }
-        repeat(2) { test("Trending", Network.PostType.TRENDING) }
-        repeat(2) { test("Favoured", Network.PostType.FAVOURED) }
+        println(Patterns.WEB_URL.pattern())
+        Log.d("ppppp", Patterns.WEB_URL.pattern())
     }
 }

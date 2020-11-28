@@ -1,6 +1,25 @@
 package personal.wuqing.anonymous
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
+import android.net.Uri
+import android.text.Spannable
+import android.text.SpannableString
+import android.text.Spanned
+import android.text.method.ArrowKeyMovementMethod
+import android.text.method.BaseMovementMethod
+import android.text.style.ClickableSpan
+import android.text.style.URLSpan
+import android.util.Log
+import android.util.Patterns
+import android.view.MotionEvent
+import android.widget.TextView
 import androidx.core.graphics.toColorInt
+import androidx.core.text.getSpans
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.google.android.material.snackbar.Snackbar
+import com.google.android.material.textview.MaterialTextView
 import java.io.Serializable
 import java.text.SimpleDateFormat
 import java.util.*
@@ -10,13 +29,105 @@ enum class BottomStatus {
     REFRESHING, NO_MORE, NETWORK_ERROR, IDLE
 }
 
+object MagicClickableMovementMethod : BaseMovementMethod() {
+    override fun onTouchEvent(
+        widget: TextView?, buffer: Spannable?, event: MotionEvent?
+    ): Boolean {
+        if (event!!.action == MotionEvent.ACTION_UP || event.action == MotionEvent.ACTION_DOWN) {
+            val tx = event.x.toInt() - widget!!.totalPaddingLeft + widget.scrollX
+            val ty = event.y.toInt() - widget.totalPaddingTop + widget.scrollY
+            val line = widget.layout.getLineForVertical(ty)
+            val offset = widget.layout.getOffsetForHorizontal(line, tx.toFloat())
+            val spans = buffer!!.getSpans<ClickableSpan>(offset, offset)
+            return spans.isNotEmpty().apply {
+                if (this && event.action == MotionEvent.ACTION_UP)
+                    spans.forEach { it.onClick(widget) }
+            }
+        }
+        return super.onTouchEvent(widget, buffer, event)
+    }
+}
+
+object MagicSelectableClickableMovementMethod : ArrowKeyMovementMethod() {
+    override fun onTouchEvent(
+        widget: TextView?, buffer: Spannable?, event: MotionEvent?
+    ): Boolean {
+        if (event!!.action == MotionEvent.ACTION_UP || event.action == MotionEvent.ACTION_DOWN) {
+            val tx = event.x.toInt() - widget!!.totalPaddingLeft + widget.scrollX
+            val ty = event.y.toInt() - widget.totalPaddingTop + widget.scrollY
+            val line = widget.layout.getLineForVertical(ty)
+            val offset = widget.layout.getOffsetForHorizontal(line, tx.toFloat())
+            val spans = buffer!!.getSpans<ClickableSpan>(offset, offset)
+            return spans.isNotEmpty().apply {
+                if (this && event.action == MotionEvent.ACTION_UP)
+                    spans.forEach { it.onClick(widget) }
+            }
+        }
+        return super.onTouchEvent(widget, buffer, event)
+    }
+}
+
+@ExperimentalTime
+fun copy(context: Context, s: String) {
+    context.getSystemService(ClipboardManager::class.java).setPrimaryClip(
+        ClipData.newPlainText("", s)
+    )
+    val view = when (context) {
+        is MainActivity -> context.binding.swipeRefresh
+        is PostDetailActivity -> context.binding.swipeRefresh
+        else -> error("")
+    }
+    Snackbar.make(view, "已复制: $s", Snackbar.LENGTH_SHORT).apply {
+        this.view.findViewById<TextView>(com.google.android.material.R.id.snackbar_text)
+            .maxLines = 1
+        if (context is PostDetailActivity) anchorView = context.binding.bottomBar
+        show()
+    }
+}
+
+fun showSelectDialog(context: Context, spannable: SpannableString) {
+    MaterialAlertDialogBuilder(context).run {
+        setMessage(spannable)
+        setCancelable(true)
+        create()
+    }.apply {
+        show()
+        window?.apply {
+            decorView.findViewById<MaterialTextView>(android.R.id.message)?.apply {
+                setTextIsSelectable(true)
+                movementMethod = MagicSelectableClickableMovementMethod
+                textSize = 18F
+            }
+        }
+    }
+}
+
+fun SpannableString.links(): List<Pair<String, Uri>> {
+    val ret = mutableListOf<Pair<String, Uri>>()
+    Regex(Patterns.WEB_URL.pattern()).findAll(this).forEach {
+        Regex("[\u0000-\u007F].*[\u0000-\u007F]").find(it.value)?.apply {
+            setSpan(
+                URLSpan(value), it.range.first + range.first, it.range.first + range.last + 1,
+                Spanned.SPAN_INCLUSIVE_INCLUSIVE
+            )
+            ret += value
+                .replace(Regex("^https?://"), "")
+                .replace(Regex("^www\\."), "")
+                .run {
+                    if (length >= 27) substring(0, 25) + '\u22EF' else this
+                } to Uri.parse(value)
+        }
+    }
+    return ret
+}
+
 @ExperimentalTime
 fun Duration.display() = when {
-    this < 1.hours -> "${inMinutes.toInt()} 分钟前"
-    this < 1.days -> "${inHours.toInt()} 小时前"
-    this < 30.days -> "${inDays.toInt()} 天前"
-    this < 365.days -> "${inDays.toInt() / 30} 个月前"
-    else -> "${inDays.toInt() / 365} 年前"
+    this < 1.hours -> "${inMinutes.toInt()}分钟前"
+    this < 1.days -> "${inHours.toInt()}小时前"
+    this < 30.days -> "${inDays.toInt()}天前"
+    this < 365.days -> "${inDays.toInt() / 30}个月前"
+    else -> "${inDays.toInt() / 365}年前"
 }
 
 @ExperimentalTime

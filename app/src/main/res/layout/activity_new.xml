@@ -6,6 +6,7 @@
     <androidx.coordinatorlayout.widget.CoordinatorLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        android:transitionName="bottom"
         tools:context=".NewPostActivity">
 
         <com.google.android.material.appbar.AppBarLayout
@@ -43,7 +44,6 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:orientation="vertical"
-            android:transitionName="bottom"
             app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
             <LinearLayout

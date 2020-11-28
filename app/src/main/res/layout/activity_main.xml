@@ -19,6 +19,7 @@
                 android:id="@+id/toolbar"
                 style="@style/Widget.MaterialComponents.Toolbar.Primary"
                 android:layout_width="match_parent"
+                android:transitionGroup="true"
                 android:layout_height="?attr/actionBarSize"
                 app:layout_scrollFlags="scroll|enterAlways|snap"
                 app:popupTheme="@style/Theme.Anonymous.PopupOverlay" />

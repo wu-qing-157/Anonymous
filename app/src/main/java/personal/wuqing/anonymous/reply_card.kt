@@ -1,19 +1,31 @@
 package personal.wuqing.anonymous
 
 import android.content.Context
+import android.content.DialogInterface
+import android.content.Intent
 import android.content.res.ColorStateList
+import android.graphics.Typeface
+import android.text.SpannableString
+import android.text.Spanned
+import android.text.style.StyleSpan
+import android.text.style.TextAppearanceSpan
 import android.util.TypedValue
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.EditText
+import androidx.cardview.widget.CardView
 import androidx.core.content.ContextCompat
+import androidx.databinding.BindingAdapter
+import androidx.databinding.DataBindingUtil
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.json.JSONObject
@@ -57,6 +69,8 @@ data class Reply constructor(
     fun likeIcon(context: Context) = ContextCompat.getDrawable(
         context, if (like) R.drawable.ic_thumb_up else R.drawable.ic_thumb_up_outlined
     )
+
+    fun contentWithLink() = SpannableString(content).apply { links() }
 
     @ExperimentalUnsignedTypes
     fun likeIconTint(context: Context) = ColorStateList.valueOf(
@@ -166,6 +180,36 @@ object ReplyDiffCallback : DiffUtil.ItemCallback<Reply>() {
 }
 
 @ExperimentalTime
+@BindingAdapter("textMagic")
+fun CardView.textMagic(reply: Reply) {
+    val binding = DataBindingUtil.getBinding<ReplyCardBinding>(this)!!
+    val context = context
+    val showMenu = {
+        val spannable = SpannableString(reply.content).apply { links() }
+        val items = arrayOf(
+            "回复", "复制内容", "自由复制"
+        )
+        MaterialAlertDialogBuilder(context).apply {
+            setItems(items) { _: DialogInterface, i: Int ->
+                when (i) {
+                    0 -> binding.root.performClick()
+                    1 -> copy(context, reply.content)
+                    2 -> showSelectDialog(context, spannable)
+                }
+            }
+            show()
+        }
+        true
+    }
+    setOnLongClickListener { showMenu() }
+    binding.content.apply {
+        movementMethod = MagicClickableMovementMethod
+        isClickable = false
+        isLongClickable = false
+    }
+}
+
+@ExperimentalTime
 class ReplyListViewModel : ViewModel() {
     val post = MutableLiveData<Post>()
     val list = MutableLiveData(listOf<Reply>())
@@ -190,6 +234,8 @@ class ReplyListViewModel : ViewModel() {
                 if (list.value.isNullOrEmpty()) BottomStatus.NO_MORE else BottomStatus.IDLE
         } catch (e: Network.NotLoggedInException) {
             context.needLogin()
+        } catch (e: CancellationException) {
+            refresh.value = false
         } catch (e: Exception) {
             info.value = "网络错误"
             bottom.value = BottomStatus.NETWORK_ERROR
@@ -211,6 +257,8 @@ class ReplyListViewModel : ViewModel() {
             bottom.value = if (newList.isEmpty()) BottomStatus.NO_MORE else BottomStatus.IDLE
         } catch (e: Network.NotLoggedInException) {
             context.needLogin()
+        } catch (e: CancellationException) {
+            bottom.value = BottomStatus.IDLE
         } catch (e: Exception) {
             bottom.value = BottomStatus.NETWORK_ERROR
         }

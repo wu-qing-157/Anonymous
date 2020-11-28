@@ -43,22 +43,16 @@ class MainActivity : AppCompatActivity() {
                     this@MainActivity,
                     *binding.run {
                         listOf(
-                            v, id, update,
+                            v, id, update, dot,
                             findViewById(android.R.id.statusBarBackground),
+                            this@MainActivity.binding.appbar,
                             this@MainActivity.binding.fab,
                         )
                     }.map { it.pair() }.toTypedArray()
                 )
             intent.putExtra("post", DataBindingUtil.getBinding<PostCardBinding>(v)!!.post)
             intent.putExtra("position", v.tag as Int)
-            window.exitTransition = TransitionSet().apply {
-                addTransition(Slide(Gravity.START).apply {
-                    excludeTarget(R.id.appbar, true)
-                })
-                addTransition(Fade().apply {
-                    addTarget(R.id.appbar)
-                })
-            }
+            window.exitTransition = Slide(Gravity.START)
             model.viewModelScope.launch {
                 startActivityForResult(intent, POST_DETAIL, options.toBundle())
             }
@@ -148,12 +142,11 @@ class MainActivity : AppCompatActivity() {
                 val intent = Intent(this@MainActivity, NewPostActivity::class.java)
                 val options = ActivityOptions.makeSceneTransitionAnimation(
                     this@MainActivity,
-                    Pair.create(binding.fab, "bottom"),
+                    Pair.create(fab, "bottom"),
                     Pair.create(
                         findViewById(android.R.id.statusBarBackground),
                         Window.STATUS_BAR_BACKGROUND_TRANSITION_NAME
                     ),
-//                    Pair.create(this@MainActivity.binding.appbar, "appbar"),
                 )
                 window.exitTransition = Fade()
                 startActivityForResult(intent, NEW_POST, options.toBundle())
@@ -232,6 +225,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onActivityReenter(resultCode: Int, data: Intent?) {
         if (resultCode == RESULT_OK) (data?.getSerializableExtra("post") as? Post)?.apply post@{
+            showInDetail = false
             data.getIntExtra("position", 0).takeIf { it > 0 }?.let {
                 binding.recycle.adapter?.notifyItemChanged(it, this)
             }

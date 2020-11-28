@@ -1,21 +1,28 @@
 package personal.wuqing.anonymous
 
-import android.content.Context
+import android.content.*
 import android.content.res.ColorStateList
+import android.graphics.Typeface
+import android.text.SpannableString
+import android.text.Spanned
+import android.text.style.StyleSpan
+import android.text.style.TextAppearanceSpan
 import android.util.Log
 import android.util.TypedValue
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.cardview.widget.CardView
 import androidx.core.content.ContextCompat
 import androidx.databinding.BindingAdapter
+import androidx.databinding.DataBindingUtil
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
-import com.google.android.material.button.MaterialButton
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -29,6 +36,7 @@ import kotlin.time.ExperimentalTime
 
 @ExperimentalTime
 data class Post constructor(
+    var showInDetail: Boolean,
     val id: String,
     val update: String,
     val post: String,
@@ -42,7 +50,8 @@ data class Post constructor(
     val colorG: ColorG,
     val nameG: NameG,
 ) : Serializable {
-    constructor(json: JSONObject) : this(
+    constructor(json: JSONObject, showInDetail: Boolean) : this(
+        showInDetail = showInDetail,
         id = json.getString("ThreadID"),
         update = json.getString("LastUpdateTime").untilNow().display(),
         post = json.getString("PostTime").untilNow().display(),
@@ -60,10 +69,17 @@ data class Post constructor(
     val avatar = colorG[0]
     fun avatarC() = nameG[0].split(" ").last()[0].toString()
 
-    fun id() = "#$id"
+    fun id() = if (showInDetail) nameG[0] else "#$id"
+    fun titleWithLink() =
+        if (showInDetail) SpannableString(title).apply { links() } else title
+
+    fun contentWithLink() =
+        if (showInDetail) SpannableString(content).apply { links() } else content
+
     fun likeCount() = likeCount.toString()
     fun replyCount() = replyCount.toString()
     fun readCount() = readCount.toString()
+    fun contentMaxLines() = if (showInDetail) Int.MAX_VALUE else 5
 
     @ExperimentalUnsignedTypes
     private fun iconTint(context: Context, boolean: Boolean) = ColorStateList.valueOf(
@@ -97,6 +113,9 @@ data class Post constructor(
 
     @ExperimentalUnsignedTypes
     fun readIconTint(context: Context) = iconTint(context, false)
+
+    @ExperimentalUnsignedTypes
+    fun menuIconTint(context: Context) = iconTint(context, false)
 
     enum class Category(val id: Int) {
         ALL(0),
@@ -207,29 +226,56 @@ object PostDiffCallback : DiffUtil.ItemCallback<Post>() {
 }
 
 @ExperimentalTime
-@BindingAdapter("postLike")
-fun MaterialButton.postLike(item: Post) {
-    iconTint = ColorStateList.valueOf(
-        if (item.like)
-            ContextCompat.getColor(context, R.color.design_default_color_primary)
-        else
-            0x777777 + (0xff shl 24)
-    )
-    icon = if (item.like) ContextCompat.getDrawable(context, R.drawable.ic_thumb_up)
-    else ContextCompat.getDrawable(context, R.drawable.ic_thumb_up_outlined)
-}
-
-@ExperimentalTime
-@BindingAdapter("postFavour")
-fun MaterialButton.postFavour(item: Post) {
-    iconTint = ColorStateList.valueOf(
-        if (item.favor)
-            ContextCompat.getColor(context, R.color.design_default_color_primary)
-        else
-            0x777777 + (0xff shl 24)
-    )
-    icon = if (item.favor) ContextCompat.getDrawable(context, R.drawable.ic_favorite)
-    else ContextCompat.getDrawable(context, R.drawable.ic_favorite_border)
+@BindingAdapter("textMagic")
+fun CardView.textMagic(post: Post) {
+    val binding = DataBindingUtil.getBinding<PostCardBinding>(this)!!
+    val context = context
+    val showMenu = {
+        val spannable = SpannableString("${post.title}\n${post.content}").apply {
+            setSpan(
+                TextAppearanceSpan(context, R.attr.textAppearanceSubtitle1),
+                0, post.title.length,
+                Spanned.SPAN_INCLUSIVE_INCLUSIVE
+            )
+            setSpan(
+                StyleSpan(Typeface.BOLD),
+                0, post.title.length,
+                Spanned.SPAN_INCLUSIVE_INCLUSIVE
+            )
+        }
+        val links = spannable.links()
+        val displayLinks =
+            if (post.showInDetail) arrayOf()
+            else links.map { (it, _) -> "跳转到 $it" }.toTypedArray()
+        val items = arrayOf(
+            if (post.favor) "取消收藏" else "收藏",
+            "复制标题", "复制内容", "自由复制",
+            *displayLinks
+        )
+        MaterialAlertDialogBuilder(context).apply {
+            setItems(items) { _: DialogInterface, i: Int ->
+                when (i) {
+                    0 -> when (context) {
+                        is MainActivity -> context.model.favor(binding)
+                        is PostDetailActivity -> context.model.favor(binding)
+                    }
+                    1 -> copy(context, post.title)
+                    2 -> copy(context, post.content)
+                    3 -> showSelectDialog(context, spannable)
+                    else -> context.startActivity(Intent(Intent.ACTION_VIEW, links[i - 4].second))
+                }
+            }
+            show()
+        }
+        true
+    }
+    binding.menu.setOnClickListener { showMenu() }
+    setOnLongClickListener { showMenu() }
+    if (post.showInDetail) for (view in listOf(binding.title, binding.content)) view.apply {
+        movementMethod = MagicClickableMovementMethod
+        isClickable = false
+        isLongClickable = false
+    }
 }
 
 @ExperimentalTime
@@ -261,7 +307,7 @@ class PostListViewModel : ViewModel() {
 
     fun refresh(context: Context) {
         refreshingJob?.cancel(CancellationException())
-        viewModelScope.launch {
+        refreshingJob = viewModelScope.launch {
             refresh.value = true
             delay(300)
             try {
@@ -277,7 +323,10 @@ class PostListViewModel : ViewModel() {
                     if (list.value.isNullOrEmpty()) BottomStatus.NO_MORE else BottomStatus.IDLE
             } catch (e: Network.NotLoggedInException) {
                 context.needLogin()
+            } catch (e: CancellationException) {
+                refresh.value = false
             } catch (e: Exception) {
+                Log.d("network_error", e.toString())
                 info.value = "网络错误"
                 bottom.value = BottomStatus.NETWORK_ERROR
             } finally {
@@ -288,7 +337,7 @@ class PostListViewModel : ViewModel() {
 
     fun more(context: Context) {
         refreshingJob?.cancel(CancellationException())
-        viewModelScope.launch {
+        refreshingJob = viewModelScope.launch {
             try {
                 bottom.value = BottomStatus.REFRESHING
                 delay(300)
@@ -303,8 +352,9 @@ class PostListViewModel : ViewModel() {
                 bottom.value = if (new.isEmpty()) BottomStatus.NO_MORE else BottomStatus.IDLE
             } catch (e: Network.NotLoggedInException) {
                 context.needLogin()
+            } catch (e: CancellationException) {
+                bottom.value = BottomStatus.IDLE
             } catch (e: Exception) {
-                Log.e("network_error", e.toString())
                 bottom.value = BottomStatus.NETWORK_ERROR
             } finally {
                 if (bottom.value == BottomStatus.REFRESHING)
@@ -339,6 +389,7 @@ class PostListViewModel : ViewModel() {
             binding.post?.apply {
                 if (favor) Network.deFavorPost(id) else Network.favorPost(id)
                 favor = !favor
+                info.value = if (favor) "收藏成功" else "取消收藏成功"
             }
             binding.invalidateAll()
         } catch (e: Network.NotLoggedInException) {

@@ -27,6 +27,7 @@ import kotlin.time.ExperimentalTime
 
 @ExperimentalTime
 class PostDetailActivity : AppCompatActivity() {
+    lateinit var binding: ActivityPostBinding
     val model by viewModels<ReplyListViewModel>()
 
     private fun <T> LiveData<T>.observe(f: (T) -> Unit) = observe(this@PostDetailActivity, f)
@@ -34,23 +35,32 @@ class PostDetailActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         postponeEnterTransition()
-        val binding =
-            DataBindingUtil.setContentView<ActivityPostBinding>(this, R.layout.activity_post)
+        binding = DataBindingUtil.setContentView(this, R.layout.activity_post)
         binding.reply.tag = "0"
-        model.post.value = intent.getSerializableExtra("post") as Post
+        model.post.value = (intent.getSerializableExtra("post") as Post).apply {
+            showInDetail = true
+        }
         setSupportActionBar(binding.toolbar)
-        supportActionBar!!.title = model.post.value!!.id()
+        supportActionBar!!.title = "#${model.post.value!!.id}"
         binding.toolbar.setNavigationOnClickListener { finishAfterTransition() }
         val adapter = ReplyAdapter(
             replyInit = {
                 root.setOnClickListener {
-                    binding.replyHint.hint = "回复 ${reply?.id()} (${reply?.name})"
-                    binding.reply.tag = reply?.id
-                    val params = binding.bottomBar.layoutParams as CoordinatorLayout.LayoutParams
-                    val behavior = params.behavior as HideBottomViewOnScrollBehavior
-                    behavior.slideUp(binding.bottomBar)
-                    binding.reply.requestFocus()
-                    getSystemService(InputMethodManager::class.java).showSoftInput(binding.reply, 0)
+                    model.viewModelScope.launch {
+                        binding.replyHint.hint = "回复 ${reply?.id()} (${reply?.name})"
+                        binding.reply.tag = reply?.id
+                        val params =
+                            binding.bottomBar.layoutParams as CoordinatorLayout.LayoutParams
+                        val behavior = params.behavior as HideBottomViewOnScrollBehavior
+                        behavior.slideUp(binding.bottomBar)
+                        binding.reply.requestFocus()
+                        delay(100)
+                        repeat(2) { // IDK Y, but repeating it really works
+                            getSystemService(InputMethodManager::class.java).showSoftInput(
+                                binding.reply, 0
+                            )
+                        }
+                    }
                 }
                 if (reply!!.showTo()) jump.apply {
                     setOnClickListener {
@@ -65,7 +75,7 @@ class PostDetailActivity : AppCompatActivity() {
                                 delay(100)
                                 (view ?: continue).apply {
                                     isPressed = true
-                                    delay(100)
+                                    delay(200)
                                     isPressed = false
                                 }
                                 break
@@ -86,12 +96,9 @@ class PostDetailActivity : AppCompatActivity() {
                     binding.reply.requestFocus()
                     getSystemService(InputMethodManager::class.java).showSoftInput(binding.reply, 0)
                 }
-                title.maxLines = Int.MAX_VALUE
-                content.maxLines = Int.MAX_VALUE
                 likeButton.setOnClickListener { model.like(this) }
                 favourButton.setOnClickListener { model.favor(this) }
                 executePendingBindings()
-                id.text = post!!.nameG[0]
             },
             bottomInit = {
                 loadMore.setOnClickListener {
@@ -173,6 +180,7 @@ class PostDetailActivity : AppCompatActivity() {
                     binding.reply.clearFocus()
                     model.refresh(this@PostDetailActivity)
                     Snackbar.make(binding.swipeRefresh, "发送成功", Snackbar.LENGTH_SHORT).show()
+                    binding.reply.setText("")
                 }
             }
             more(this@PostDetailActivity)
