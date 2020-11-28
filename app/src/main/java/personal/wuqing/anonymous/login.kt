@@ -22,10 +22,18 @@ import personal.wuqing.anonymous.databinding.ActivityLoginBinding
 import java.util.*
 import kotlin.time.ExperimentalTime
 
+const val LOGIN_RESULT = 20201129 and 0xffff
+
 @ExperimentalTime
 fun Context.needLogin() = (this as Activity).apply {
-    startActivity(Intent(this, LoginActivity::class.java))
-    finish()
+    startActivityForResult(Intent(this, LoginActivity::class.java), LOGIN_RESULT)
+}
+
+@ExperimentalTime
+fun Context.loadToken() {
+    getSharedPreferences("login", Context.MODE_PRIVATE).getString("token", null)?.let {
+        Network.token = it
+    }
 }
 
 @ExperimentalTime
@@ -147,7 +155,8 @@ class LoginActivity : AppCompatActivity() {
                     apply()
                 }
                 Toast.makeText(this, "登录成功", Toast.LENGTH_SHORT).show()
-                startActivity(Intent(this, MainActivity::class.java))
+                setResult(LOGIN_RESULT)
+                finish()
             }
         }
     }

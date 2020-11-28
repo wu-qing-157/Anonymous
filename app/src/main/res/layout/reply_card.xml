@@ -162,7 +162,7 @@
                     android:layout_marginEnd="12dp"
                     android:layout_marginBottom="12dp"
                     android:layout_weight="1"
-                    android:text="@{reply.contentWithLink()}"
+                    android:text="@{reply.contentWithLink(context)}"
                     android:textAppearance="?attr/textAppearanceBody2"
                     android:textColor="?android:attr/textColorPrimary" />
 

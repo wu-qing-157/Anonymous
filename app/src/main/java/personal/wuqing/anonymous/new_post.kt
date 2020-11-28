@@ -62,14 +62,8 @@ class NewPostActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         postponeEnterTransition()
+        loadToken()
         binding = DataBindingUtil.setContentView(this, R.layout.activity_new)
-        getSharedPreferences("login", MODE_PRIVATE).apply {
-            if (contains("token")) Network.token = getString("token", "")!!
-            else {
-                startActivity(Intent(this@NewPostActivity, LoginActivity::class.java))
-                finish()
-            }
-        }
         setSupportActionBar(binding.toolbar)
         binding.apply {
             toolbar.setNavigationOnClickListener { finishAfterTransition() }
@@ -181,5 +175,10 @@ class NewPostActivity : AppCompatActivity() {
             )
         }
         else -> false
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (resultCode == LOGIN_RESULT) loadToken()
     }
 }

@@ -1,5 +1,6 @@
 package personal.wuqing.anonymous
 
+import android.app.Activity
 import android.content.*
 import android.content.res.ColorStateList
 import android.graphics.Typeface
@@ -70,11 +71,11 @@ data class Post constructor(
     fun avatarC() = nameG[0].split(" ").last()[0].toString()
 
     fun id() = if (showInDetail) nameG[0] else "#$id"
-    fun titleWithLink() =
-        if (showInDetail) SpannableString(title).apply { links() } else title
+    fun titleWithLink(context: Context) =
+        if (showInDetail) SpannableString(title).apply { links(context as Activity) } else title
 
-    fun contentWithLink() =
-        if (showInDetail) SpannableString(content).apply { links() } else content
+    fun contentWithLink(context: Context) =
+        if (showInDetail) SpannableString(content).apply { links(context as Activity) } else content
 
     fun likeCount() = likeCount.toString()
     fun replyCount() = replyCount.toString()
@@ -235,15 +236,15 @@ fun CardView.textMagic(post: Post) {
             setSpan(
                 TextAppearanceSpan(context, R.attr.textAppearanceSubtitle1),
                 0, post.title.length,
-                Spanned.SPAN_INCLUSIVE_INCLUSIVE
+                Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
             )
             setSpan(
                 StyleSpan(Typeface.BOLD),
                 0, post.title.length,
-                Spanned.SPAN_INCLUSIVE_INCLUSIVE
+                Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
             )
         }
-        val links = spannable.links()
+        val links = spannable.links(context as Activity)
         val displayLinks =
             if (post.showInDetail) arrayOf()
             else links.map { (it, _) -> "跳转到 $it" }.toTypedArray()

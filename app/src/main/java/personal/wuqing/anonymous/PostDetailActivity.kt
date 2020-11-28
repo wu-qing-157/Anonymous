@@ -2,9 +2,8 @@ package personal.wuqing.anonymous
 
 import android.content.Intent
 import android.os.Bundle
-import android.transition.Fade
 import android.transition.Slide
-import android.transition.TransitionSet
+import android.util.Log
 import android.view.Gravity
 import android.view.View
 import android.view.inputmethod.InputMethodManager
@@ -34,14 +33,19 @@ class PostDetailActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        postponeEnterTransition()
+        loadToken()
+        val fromURL = (intent.getSerializableExtra("post") as? Post)?.also {
+            it.showInDetail = true
+            model.post.value = it
+            postponeEnterTransition()
+        } == null
         binding = DataBindingUtil.setContentView(this, R.layout.activity_post)
         binding.reply.tag = "0"
-        model.post.value = (intent.getSerializableExtra("post") as Post).apply {
-            showInDetail = true
-        }
         setSupportActionBar(binding.toolbar)
-        supportActionBar!!.title = "#${model.post.value!!.id}"
+        val id =
+            if (fromURL) intent.data?.host?.takeIf { it.matches(Regex("[0-9]{6}")) }
+            else model.post.value!!.id
+        supportActionBar!!.title = id?.let { "#$id" } ?: "404 - Not Found"
         binding.toolbar.setNavigationOnClickListener { finishAfterTransition() }
         val adapter = ReplyAdapter(
             replyInit = {
@@ -106,12 +110,12 @@ class PostDetailActivity : AppCompatActivity() {
                 }
                 noMore.setOnClickListener {
                     model.refresh(this@PostDetailActivity)
-                    binding.recycle.smoothScrollToPosition(0)
                 }
                 networkError.setOnClickListener {
                     model.more(this@PostDetailActivity)
                 }
                 model.bottom.observe {
+                    Log.e("bs", "bottom")
                     fun v(b: Boolean) = if (b) View.VISIBLE else View.INVISIBLE
                     binding.apply {
                         loadMore.visibility = v(it == BottomStatus.IDLE)
@@ -155,7 +159,12 @@ class PostDetailActivity : AppCompatActivity() {
             post.observe {
                 adapter.notifyItemChanged(0, it)
             }
-            list.observe { adapter.submitList(listOf(null) + it + listOf(null)) }
+            list.observe {
+                if (post.value == null) adapter.submitList(listOf(ReplyListBottom))
+                else adapter.submitList(listOf(ReplyListPost) + it + ReplyListBottom) {
+                    binding.recycle.smoothScrollToPosition(0)
+                }
+            }
             refresh.observe { binding.swipeRefresh.isRefreshing = it }
             info.observe {
                 if (!it.isNullOrEmpty())
@@ -183,26 +192,23 @@ class PostDetailActivity : AppCompatActivity() {
                     binding.reply.setText("")
                 }
             }
-            more(this@PostDetailActivity)
+            more(this@PostDetailActivity, id = id)
         }
-        TransitionSet().apply {
-            addTransition(Slide(Gravity.END).apply {
-                excludeTarget(binding.appbar, true)
-            })
-            addTransition(Fade().apply {
-                addTarget(binding.appbar)
-            })
-        }.let {
-            window.enterTransition = it
-            window.returnTransition = it
-        }
+        window.enterTransition = Slide(Gravity.END)
+        postponeEnterTransition()
     }
 
     override fun finishAfterTransition() {
+        window.exitTransition = Slide(Gravity.END)
         setResult(RESULT_OK, Intent().apply {
             putExtra("post", model.post.value)
             putExtra("position", intent.getIntExtra("position", 0))
         })
         super.finishAfterTransition()
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (resultCode == LOGIN_RESULT) loadToken()
     }
 }

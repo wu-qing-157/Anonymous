@@ -1,8 +1,11 @@
 package personal.wuqing.anonymous
 
+import android.app.Activity
+import android.app.ActivityOptions
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import android.content.Intent
 import android.net.Uri
 import android.text.Spannable
 import android.text.SpannableString
@@ -11,9 +14,11 @@ import android.text.method.ArrowKeyMovementMethod
 import android.text.method.BaseMovementMethod
 import android.text.style.ClickableSpan
 import android.text.style.URLSpan
-import android.util.Log
+import android.transition.Slide
 import android.util.Patterns
+import android.view.Gravity
 import android.view.MotionEvent
+import android.view.View
 import android.widget.TextView
 import androidx.core.graphics.toColorInt
 import androidx.core.text.getSpans
@@ -102,13 +107,14 @@ fun showSelectDialog(context: Context, spannable: SpannableString) {
     }
 }
 
-fun SpannableString.links(): List<Pair<String, Uri>> {
+@ExperimentalTime
+fun SpannableString.links(activity: Activity): List<Pair<String, Uri>> {
     val ret = mutableListOf<Pair<String, Uri>>()
     Regex(Patterns.WEB_URL.pattern()).findAll(this).forEach {
         Regex("[\u0000-\u007F].*[\u0000-\u007F]").find(it.value)?.apply {
             setSpan(
                 URLSpan(value), it.range.first + range.first, it.range.first + range.last + 1,
-                Spanned.SPAN_INCLUSIVE_INCLUSIVE
+                Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
             )
             ret += value
                 .replace(Regex("^https?://"), "")
@@ -117,6 +123,37 @@ fun SpannableString.links(): List<Pair<String, Uri>> {
                     if (length >= 27) substring(0, 25) + '\u22EF' else this
                 } to Uri.parse(value)
         }
+    }
+    Regex("wkfg://[0-9]+").findAll(this).forEach {
+        setSpan(
+            object : ClickableSpan() {
+                override fun onClick(widget: View) {
+                    fun View.pair() = android.util.Pair.create(this, this.transitionName)
+                    val options = ActivityOptions.makeSceneTransitionAnimation(
+                        activity,
+                        *when (activity) {
+                            is MainActivity -> listOf(
+                                activity.findViewById<View>(android.R.id.statusBarBackground),
+                                activity.binding.fab,
+                                activity.binding.appbar
+                            )
+                            is PostDetailActivity -> listOf(
+                                activity.findViewById<View>(android.R.id.statusBarBackground),
+                                activity.binding.bottomBar,
+                                activity.binding.appbar
+                            )
+                            else -> error("")
+                        }.map { v -> v.pair() }.toTypedArray()
+                    )
+                    activity.window.exitTransition = Slide(Gravity.START)
+                    activity.startActivity(
+                        Intent(Intent.ACTION_VIEW, Uri.parse(it.value)), options.toBundle()
+                    )
+                }
+            }, it.range.first, it.range.last + 1,
+            Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+        )
+        ret += it.value to Uri.parse(it.value)
     }
     return ret
 }

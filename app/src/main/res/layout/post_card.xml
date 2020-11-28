@@ -68,7 +68,7 @@
                             android:id="@+id/title"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="@{post.titleWithLink()}"
+                            android:text="@{post.titleWithLink(context)}"
                             android:textAppearance="?attr/textAppearanceSubtitle2"
                             android:textStyle="bold"
                             android:transitionName="title" />
@@ -138,7 +138,7 @@
                     android:layout_marginEnd="12dp"
                     android:layout_weight="1"
                     android:maxLines="@{post.contentMaxLines()}"
-                    android:text="@{post.contentWithLink()}"
+                    android:text="@{post.contentWithLink(context)}"
                     android:textAppearance="?attr/textAppearanceBody2"
                     android:textColor="?android:attr/textColorPrimary"
                     android:transitionName="content" />

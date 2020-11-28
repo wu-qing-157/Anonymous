@@ -1,14 +1,10 @@
 package personal.wuqing.anonymous
 
+import android.app.Activity
 import android.content.Context
 import android.content.DialogInterface
-import android.content.Intent
 import android.content.res.ColorStateList
-import android.graphics.Typeface
 import android.text.SpannableString
-import android.text.Spanned
-import android.text.style.StyleSpan
-import android.text.style.TextAppearanceSpan
 import android.util.TypedValue
 import android.view.LayoutInflater
 import android.view.View
@@ -35,6 +31,12 @@ import personal.wuqing.anonymous.databinding.ReplyCardBinding
 import java.io.Serializable
 import kotlin.time.ExperimentalTime
 
+sealed class ReplyListElem
+
+object ReplyListPost : ReplyListElem()
+object ReplyListFilter : ReplyListElem()
+object ReplyListBottom : ReplyListElem()
+
 @ExperimentalTime
 data class Reply constructor(
     val id: String,
@@ -46,7 +48,7 @@ data class Reply constructor(
     var likeCount: Int,
     val toName: String,
     val toFloor: Int
-) : Serializable {
+) : ReplyListElem(), Serializable {
     constructor(json: JSONObject, nameG: NameG, colorG: ColorG) : this(
         id = json.getString("FloorID"),
         update = json.getString("RTime").untilNow().display(),
@@ -70,7 +72,8 @@ data class Reply constructor(
         context, if (like) R.drawable.ic_thumb_up else R.drawable.ic_thumb_up_outlined
     )
 
-    fun contentWithLink() = SpannableString(content).apply { links() }
+    fun contentWithLink(context: Context) =
+        SpannableString(content).apply { links(context as Activity) }
 
     @ExperimentalUnsignedTypes
     fun likeIconTint(context: Context) = ColorStateList.valueOf(
@@ -91,7 +94,7 @@ class ReplyAdapter(
     private val replyInit: ReplyCardBinding.() -> Unit,
     private val postInit: PostCardBinding.() -> Unit,
     private val bottomInit: RecycleBottomBinding.() -> Unit,
-) : ListAdapter<Reply, ReplyAdapter.ViewHolder>(ReplyDiffCallback) {
+) : ListAdapter<ReplyListElem, ReplyAdapter.ViewHolder>(ReplyDiffCallback) {
     companion object {
         const val POST = 1
         const val REPLY = 0
@@ -148,7 +151,7 @@ class ReplyAdapter(
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         when (holder) {
-            is ViewHolder.ReplyCard -> holder.bind(getItem(position))
+            is ViewHolder.ReplyCard -> holder.bind(getItem(position) as Reply)
             is ViewHolder.PostCard -> holder.bind()
             is ViewHolder.Bottom -> Unit
         }
@@ -160,21 +163,22 @@ class ReplyAdapter(
     }
 
     override fun getItemViewType(position: Int): Int {
-        return when (position) {
-            0 -> POST
-            currentList.size - 1 -> BOTTOM
-            else -> REPLY
+        return when (getItem(position)) {
+            ReplyListPost -> POST
+            ReplyListFilter -> TODO()
+            ReplyListBottom -> BOTTOM
+            is Reply -> REPLY
         }
     }
 }
 
 @ExperimentalTime
-object ReplyDiffCallback : DiffUtil.ItemCallback<Reply>() {
-    override fun areItemsTheSame(oldItem: Reply, newItem: Reply): Boolean {
-        return oldItem.id == newItem.id
+object ReplyDiffCallback : DiffUtil.ItemCallback<ReplyListElem>() {
+    override fun areItemsTheSame(oldItem: ReplyListElem, newItem: ReplyListElem): Boolean {
+        return (oldItem is Reply && newItem is Reply && oldItem.id == newItem.id) || oldItem == newItem
     }
 
-    override fun areContentsTheSame(oldItem: Reply, newItem: Reply): Boolean {
+    override fun areContentsTheSame(oldItem: ReplyListElem, newItem: ReplyListElem): Boolean {
         return oldItem == newItem
     }
 }
@@ -185,7 +189,7 @@ fun CardView.textMagic(reply: Reply) {
     val binding = DataBindingUtil.getBinding<ReplyCardBinding>(this)!!
     val context = context
     val showMenu = {
-        val spannable = SpannableString(reply.content).apply { links() }
+        val spannable = SpannableString(reply.content).apply { links(context as Activity) }
         val items = arrayOf(
             "回复", "复制内容", "自由复制"
         )
@@ -215,7 +219,7 @@ class ReplyListViewModel : ViewModel() {
     val list = MutableLiveData(listOf<Reply>())
     val info = MutableLiveData("")
     val refresh = MutableLiveData(false)
-    var bottom = MutableLiveData(BottomStatus.REFRESHING)
+    val bottom = MutableLiveData(BottomStatus.REFRESHING)
     val sending = MutableLiveData(false)
     val success = MutableLiveData(false)
     private var last = "NULL"
@@ -244,11 +248,11 @@ class ReplyListViewModel : ViewModel() {
         }
     }
 
-    fun more(context: Context) = viewModelScope.launch {
+    fun more(context: Context, id: String? = null) = viewModelScope.launch {
         bottom.value = BottomStatus.REFRESHING
-        delay(300)
         try {
-            val (pair, newList) = Network.fetchReply(post.value!!.id, last)
+            delay(300)
+            val (pair, newList) = Network.fetchReply(id ?: post.value!!.id, last)
             val (last, newPost) = pair
             this@ReplyListViewModel.last = last
             post.value = newPost

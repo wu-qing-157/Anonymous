@@ -64,13 +64,8 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        getSharedPreferences("login", MODE_PRIVATE).apply {
-            if (contains("token")) Network.token = getString("token", "")!!
-            else {
-                startActivity(Intent(this@MainActivity, LoginActivity::class.java))
-                finish()
-            }
-        }
+        loadToken()
+        model.viewModelScope.launch { Network.verifyToken() }
         val adapter = PostAdapter(
             postInit = {
                 root.setOnClickListener(BlogOnClickListener())
@@ -230,5 +225,10 @@ class MainActivity : AppCompatActivity() {
                 binding.recycle.adapter?.notifyItemChanged(it, this)
             }
         }
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (resultCode == LOGIN_RESULT) loadToken()
     }
 }

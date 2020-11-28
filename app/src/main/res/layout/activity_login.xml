@@ -85,7 +85,8 @@
                     android:id="@+id/send_code"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
-                    android:layout_gravity="center"
+                    android:layout_gravity="bottom"
+                    android:insetBottom="0dp"
                     android:text="发送验证码" />
 
             </androidx.coordinatorlayout.widget.CoordinatorLayout>

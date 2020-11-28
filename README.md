@@ -15,9 +15,9 @@ Note that this repo is currently **unofficial**, which
 
 ### Major known issues
 
-+ Reversed reply order not supported
-+ Icon of cards subject to change
-+ Favor do not work properly in the post list
++ Missing `Report Blog`, `Reply in Reversed Order`, `Logout`, `Unlike`, `About WKFG and Anonymous`
++ Losing exit transition after reenter
++ Login activity subject to change
 
 Feel free to post your ideas in the Github [issue](https://github.com/wu-qing-157/Anonymous/issues) page.
 But remember that this repo is *unofficial* and in *alpha-alpha* test stage.
