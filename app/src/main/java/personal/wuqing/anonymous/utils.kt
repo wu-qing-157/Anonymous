@@ -17,10 +17,12 @@ import android.text.style.ClickableSpan
 import android.transition.Slide
 import android.util.Log
 import android.util.Patterns
+import android.util.TypedValue
 import android.view.Gravity
 import android.view.MotionEvent
 import android.view.View
 import android.widget.TextView
+import androidx.browser.customtabs.CustomTabsIntent
 import androidx.core.graphics.toColorInt
 import androidx.core.text.getSpans
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -33,6 +35,15 @@ import kotlin.time.*
 
 enum class BottomStatus {
     REFRESHING, NO_MORE, NETWORK_ERROR, IDLE
+}
+
+fun Context.launchCustomTab(uri: Uri) {
+    CustomTabsIntent.Builder().apply {
+        setToolbarColor(TypedValue().apply {
+            theme.resolveAttribute(R.attr.colorPrimary, this, true)
+        }.data)
+        addDefaultShareMenuItem()
+    }.build().launchUrl(this, uri)
 }
 
 object MagicClickableMovementMethod : BaseMovementMethod() {
