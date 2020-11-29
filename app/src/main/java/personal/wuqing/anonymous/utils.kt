@@ -1,5 +1,6 @@
 package personal.wuqing.anonymous
 
+import android.annotation.SuppressLint
 import android.app.Activity
 import android.app.ActivityOptions
 import android.content.ClipData
@@ -13,8 +14,8 @@ import android.text.Spanned
 import android.text.method.ArrowKeyMovementMethod
 import android.text.method.BaseMovementMethod
 import android.text.style.ClickableSpan
-import android.text.style.URLSpan
 import android.transition.Slide
+import android.util.Log
 import android.util.Patterns
 import android.view.Gravity
 import android.view.MotionEvent
@@ -112,8 +113,13 @@ fun SpannableString.links(activity: Activity): List<Pair<String, Uri>> {
     val ret = mutableListOf<Pair<String, Uri>>()
     Regex(Patterns.WEB_URL.pattern()).findAll(this).forEach {
         Regex("[\u0000-\u007F].*[\u0000-\u007F]").find(it.value)?.apply {
+            val url = if (value.matches(Regex("^https?://.*"))) value else "http://${value}"
             setSpan(
-                URLSpan(value), it.range.first + range.first, it.range.first + range.last + 1,
+                object : ClickableSpan() {
+                    override fun onClick(widget: View) {
+                        activity.launchCustomTab(Uri.parse(url))
+                    }
+                }, it.range.first + range.first, it.range.first + range.last + 1,
                 Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
             )
             ret += value
@@ -121,7 +127,7 @@ fun SpannableString.links(activity: Activity): List<Pair<String, Uri>> {
                 .replace(Regex("^www\\."), "")
                 .run {
                     if (length >= 27) substring(0, 25) + '\u22EF' else this
-                } to Uri.parse(value)
+                } to Uri.parse(url)
         }
     }
     Regex("wkfg://[0-9]+").findAll(this).forEach {
@@ -156,6 +162,19 @@ fun SpannableString.links(activity: Activity): List<Pair<String, Uri>> {
         ret += it.value to Uri.parse(it.value)
     }
     return ret
+}
+
+@SuppressLint("PrivateApi")
+fun setPendingExitSharedElements(activity: Activity, elements: List<String>) = try {
+    val transitionStateField = activity::class.java.getDeclaredField("mActivityTransitionState")
+    transitionStateField.isAccessible = true
+    val transitionState = transitionStateField.get(activity)
+    val exitNamesField =
+        Class.forName("android.app.ActivityTransitionState").getDeclaredField("mPendingExitNames")
+    exitNamesField.isAccessible = true
+    exitNamesField.set(transitionState, elements)
+} catch (e: Exception) {
+    Log.e("reflection", e.toString())
 }
 
 @ExperimentalTime

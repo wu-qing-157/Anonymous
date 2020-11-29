@@ -263,7 +263,7 @@ fun CardView.textMagic(post: Post) {
                     1 -> copy(context, post.title)
                     2 -> copy(context, post.content)
                     3 -> showSelectDialog(context, spannable)
-                    else -> context.startActivity(Intent(Intent.ACTION_VIEW, links[i - 4].second))
+                    else -> context.launchCustomTab(links[i - 4].second)
                 }
             }
             show()
