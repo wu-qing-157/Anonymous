@@ -1,6 +1,5 @@
 package personal.wuqing.anonymous
 
-import android.annotation.SuppressLint
 import android.app.Activity
 import android.app.ActivityOptions
 import android.content.ClipData
@@ -15,7 +14,6 @@ import android.text.method.ArrowKeyMovementMethod
 import android.text.method.BaseMovementMethod
 import android.text.style.ClickableSpan
 import android.transition.Slide
-import android.util.Log
 import android.util.Patterns
 import android.util.TypedValue
 import android.view.Gravity
@@ -173,19 +171,6 @@ fun SpannableString.links(activity: Activity): List<Pair<String, Uri>> {
         ret += it.value to Uri.parse(it.value)
     }
     return ret
-}
-
-@SuppressLint("PrivateApi")
-fun setPendingExitSharedElements(activity: Activity, elements: List<String>) = try {
-    val transitionStateField = activity::class.java.getDeclaredField("mActivityTransitionState")
-    transitionStateField.isAccessible = true
-    val transitionState = transitionStateField.get(activity)
-    val exitNamesField =
-        Class.forName("android.app.ActivityTransitionState").getDeclaredField("mPendingExitNames")
-    exitNamesField.isAccessible = true
-    exitNamesField.set(transitionState, elements)
-} catch (e: Exception) {
-    Log.e("reflection", e.toString())
 }
 
 @ExperimentalTime

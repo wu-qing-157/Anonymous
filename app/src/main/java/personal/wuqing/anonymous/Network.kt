@@ -112,18 +112,19 @@ object Network {
         }
     }
 
-    suspend fun fetchReply(postId: String, last: String = "NULL") = withContext(Dispatchers.IO) {
-        getData(op = "2", p1 = postId, p2 = last) {
-            val post = Post(getJSONObject("this_thread"), true)
-            var newLast = "NULL"
-            for (key in keys()) if (key.startsWith("LastSeen")) newLast = getString(key)
-            newLast to post to getJSONArray("floor_list").let {
-                (0 until it.length()).map { i ->
-                    Reply(it.getJSONObject(i), post.nameG, post.colorG)
+    suspend fun fetchReply(postId: String, order: Boolean, last: String = "NULL") =
+        withContext(Dispatchers.IO) {
+            getData(op = "2", p1 = postId, p2 = last, p3 = if (order) "1" else "0") {
+                val post = Post(getJSONObject("this_thread"), true)
+                var newLast = "NULL"
+                for (key in keys()) if (key.startsWith("LastSeen")) newLast = getString(key)
+                newLast to post to getJSONArray("floor_list").let {
+                    (0 until it.length()).map { i ->
+                        Reply(it.getJSONObject(i), post.nameG, post.colorG)
+                    }
                 }
             }
         }
-    }
 
     suspend fun likeReply(post: String, reply: String) = withContext(Dispatchers.IO) {
         getData(op = "8", p1 = post, p4 = reply) { true }

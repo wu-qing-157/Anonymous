@@ -22,6 +22,8 @@ import com.google.android.material.snackbar.Snackbar
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import personal.wuqing.anonymous.databinding.ActivityPostBinding
+import kotlin.math.max
+import kotlin.math.min
 import kotlin.time.ExperimentalTime
 
 @ExperimentalTime
@@ -69,13 +71,39 @@ class PostDetailActivity : AppCompatActivity() {
                 if (reply!!.showTo()) jump.apply {
                     setOnClickListener {
                         model.viewModelScope.launch {
-                            if ((binding.recycle.layoutManager as LinearLayoutManager).run {
-                                    findFirstCompletelyVisibleItemPosition() > reply!!.toFloor
-                                }) binding.appbar.setExpanded(true, true)
-                            binding.recycle.smoothScrollToPosition(reply!!.toFloor)
+                            val to = reply!!.toFloor
+                            val target =
+                                if (to == 0) 0
+                                else (binding.recycle.adapter as ReplyAdapter).currentList.indexOfFirst {
+                                    it is Reply && it.id.toInt() == to
+                                }
+                            if (target == 1) {
+                                Snackbar.make(
+                                    binding.swipeRefresh, "暂不支持跳转至还未加载的楼层",
+                                    Snackbar.LENGTH_SHORT
+                                ).show()
+                                return@launch
+                            }
+                            (binding.recycle.layoutManager as LinearLayoutManager).apply {
+                                val params =
+                                    binding.bottomBar.layoutParams as CoordinatorLayout.LayoutParams
+                                val behavior = params.behavior as HideBottomViewOnScrollBehavior
+                                if (findFirstCompletelyVisibleItemPosition() >= target) {
+                                    binding.appbar.setExpanded(true, true)
+                                    behavior.slideUp(binding.bottomBar)
+                                    delay(50)
+                                    binding.recycle.smoothScrollToPosition(max(target - 1, 0))
+                                } else if (findLastCompletelyVisibleItemPosition() <= target) {
+                                    binding.appbar.setExpanded(false, true)
+                                    behavior.slideDown(binding.bottomBar)
+                                    binding.recycle.smoothScrollToPosition(
+                                        min(target + 1, binding.recycle.adapter!!.itemCount)
+                                    )
+                                }
+                            }
                             while (true) {
                                 val view = binding.recycle
-                                    .findViewHolderForLayoutPosition(reply!!.toFloor)?.itemView
+                                    .findViewHolderForLayoutPosition(target)?.itemView
                                 delay(100)
                                 (view ?: continue).apply {
                                     isPressed = true
@@ -88,6 +116,16 @@ class PostDetailActivity : AppCompatActivity() {
                     }
                 }
                 likeButton.setOnClickListener { model.like(this) }
+            },
+            sortInit = {
+                sort.text = if (model.order.value!!) "逆序" else "顺序"
+                model.order.observe(this@PostDetailActivity) {
+                    sort.text = if (it) "逆序" else "顺序"
+                }
+                sort.setOnClickListener {
+                    model.order.value = !model.order.value!!
+                    model.refresh(this@PostDetailActivity)
+                }
             },
             postInit = {
                 post = model.post.value
@@ -161,8 +199,15 @@ class PostDetailActivity : AppCompatActivity() {
             }
             list.observe {
                 if (post.value == null) adapter.submitList(listOf(ReplyListBottom))
-                else adapter.submitList(listOf(ReplyListPost) + it + ReplyListBottom) {
-                    binding.recycle.smoothScrollToPosition(0)
+                else {
+                    adapter.submitList(
+                        listOf(ReplyListPost, ReplyListOrder) + it + ReplyListBottom,
+                        if (adapter.currentList.size <= 1) {
+                            { binding.recycle.smoothScrollToPosition(0) }
+                        } else {
+                            {}
+                        }
+                    )
                 }
             }
             refresh.observe { binding.swipeRefresh.isRefreshing = it }
@@ -192,11 +237,19 @@ class PostDetailActivity : AppCompatActivity() {
                     binding.reply.setText("")
                 }
             }
+            order.observe {
+                if (adapter.currentList.size >= 3) adapter.notifyItemChanged(1)
+            }
             more(this@PostDetailActivity, id = id)
         }
         window.enterTransition = Slide(Gravity.END)
-        postponeEnterTransition()
+        if (firstCreate) {
+            postponeEnterTransition()
+            firstCreate = false
+        }
     }
+
+    var firstCreate = true
 
     override fun finishAfterTransition() {
         window.exitTransition = Slide(Gravity.END)

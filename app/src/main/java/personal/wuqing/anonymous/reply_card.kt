@@ -28,13 +28,14 @@ import org.json.JSONObject
 import personal.wuqing.anonymous.databinding.PostCardBinding
 import personal.wuqing.anonymous.databinding.RecycleBottomBinding
 import personal.wuqing.anonymous.databinding.ReplyCardBinding
+import personal.wuqing.anonymous.databinding.ReplySortBinding
 import java.io.Serializable
 import kotlin.time.ExperimentalTime
 
 sealed class ReplyListElem
 
 object ReplyListPost : ReplyListElem()
-object ReplyListFilter : ReplyListElem()
+object ReplyListOrder : ReplyListElem()
 object ReplyListBottom : ReplyListElem()
 
 @ExperimentalTime
@@ -92,6 +93,7 @@ data class Reply constructor(
 @ExperimentalTime
 class ReplyAdapter(
     private val replyInit: ReplyCardBinding.() -> Unit,
+    private val sortInit: ReplySortBinding.() -> Unit,
     private val postInit: PostCardBinding.() -> Unit,
     private val bottomInit: RecycleBottomBinding.() -> Unit,
 ) : ListAdapter<ReplyListElem, ReplyAdapter.ViewHolder>(ReplyDiffCallback) {
@@ -99,6 +101,7 @@ class ReplyAdapter(
         const val POST = 1
         const val REPLY = 0
         const val BOTTOM = 2
+        const val SORT = 3
     }
 
     sealed class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
@@ -110,6 +113,15 @@ class ReplyAdapter(
                 reply = item
                 init()
                 executePendingBindings()
+            }
+        }
+
+        class Sort(
+            private val binding: ReplySortBinding,
+            private val init: ReplySortBinding.() -> Unit
+        ) : ViewHolder(binding.root) {
+            init {
+                binding.init()
             }
         }
 
@@ -145,6 +157,10 @@ class ReplyAdapter(
                 val binding = RecycleBottomBinding.inflate(inflater, parent, false)
                 ViewHolder.Bottom(binding, bottomInit)
             }
+            SORT -> {
+                val binding = ReplySortBinding.inflate(inflater, parent, false)
+                ViewHolder.Sort(binding, sortInit)
+            }
             else -> error("")
         }
     }
@@ -154,6 +170,7 @@ class ReplyAdapter(
             is ViewHolder.ReplyCard -> holder.bind(getItem(position) as Reply)
             is ViewHolder.PostCard -> holder.bind()
             is ViewHolder.Bottom -> Unit
+            is ViewHolder.Sort -> Unit
         }
     }
 
@@ -165,7 +182,7 @@ class ReplyAdapter(
     override fun getItemViewType(position: Int): Int {
         return when (getItem(position)) {
             ReplyListPost -> POST
-            ReplyListFilter -> TODO()
+            ReplyListOrder -> SORT
             ReplyListBottom -> BOTTOM
             is Reply -> REPLY
         }
@@ -222,13 +239,14 @@ class ReplyListViewModel : ViewModel() {
     val bottom = MutableLiveData(BottomStatus.REFRESHING)
     val sending = MutableLiveData(false)
     val success = MutableLiveData(false)
+    val order = MutableLiveData(false)
     private var last = "NULL"
 
     fun refresh(context: Context) = viewModelScope.launch {
         refresh.value = true
         delay(300)
         try {
-            val (pair, newList) = Network.fetchReply(post.value!!.id)
+            val (pair, newList) = Network.fetchReply(post.value!!.id, order.value!!)
             val (last, newPost) = pair
             this@ReplyListViewModel.last = last
             post.value = newPost
@@ -252,7 +270,7 @@ class ReplyListViewModel : ViewModel() {
         bottom.value = BottomStatus.REFRESHING
         try {
             delay(300)
-            val (pair, newList) = Network.fetchReply(id ?: post.value!!.id, last)
+            val (pair, newList) = Network.fetchReply(id ?: post.value!!.id, order.value!!, last)
             val (last, newPost) = pair
             this@ReplyListViewModel.last = last
             post.value = newPost
