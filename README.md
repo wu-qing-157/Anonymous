@@ -13,11 +13,7 @@ Note that this repo is currently **unofficial**, which
 + May lack some detailed functions
 + Have not been fully tested
 
-### Major known issues
-
-+ Missing `Report Blog`, `Reply in Reversed Order`, `Logout`, `Unlike`, `About WKFG and Anonymous`
-+ Losing exit transition after reenter
-+ Login activity subject to change
+### Issues
 
 Feel free to post your ideas in the Github [issue](https://github.com/wu-qing-157/Anonymous/issues) page.
 But remember that this repo is *unofficial* and in *alpha-alpha* test stage.
