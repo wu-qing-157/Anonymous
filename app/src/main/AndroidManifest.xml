@@ -14,6 +14,9 @@
         android:theme="@style/Theme.Anonymous"
         android:usesCleartextTraffic="true">
         <activity
+            android:name=".SettingsActivity"
+            android:label="@string/title_activity_settings" />
+        <activity
             android:name=".LoginActivity"
             android:label="@string/title_activity_login"
             android:windowSoftInputMode="adjustResize">
@@ -41,6 +44,7 @@
                 <category android:name="android.intent.category.BROWSABLE" />
 
                 <data android:scheme="wkfg" />
+
                 <action android:name="android.intent.action.VIEW" />
             </intent-filter>
         </activity>

@@ -68,6 +68,7 @@
                             android:id="@+id/title"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
+                            android:maxLines="@{post.titleMaxLines()}"
                             android:text="@{post.titleWithLink(context)}"
                             android:textAppearance="?attr/textAppearanceSubtitle2"
                             android:textStyle="bold"
@@ -103,7 +104,7 @@
                                 android:id="@+id/update"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="@{post.update}"
+                                android:text="@{post.update()}"
                                 android:textAppearance="?attr/textAppearanceCaption"
                                 android:textColor="?android:attr/textColorSecondary"
                                 android:transitionName="update" />
@@ -173,30 +174,18 @@
                         style="?attr/borderlessButtonStyle"
                         android:layout_width="64dp"
                         android:layout_height="wrap_content"
+                        android:background="@color/white"
+                        android:clickable="false"
+                        android:focusable="false"
                         android:minHeight="0dp"
                         android:text="@{post.replyCount()}"
                         android:textAlignment="textStart"
                         android:textColor="?android:attr/textColorSecondary"
                         android:textSize="12sp"
                         android:transitionName="reply"
-                        app:icon="@drawable/ic_textmsm_outlined"
+                        app:icon="@drawable/ic_textsms"
                         app:iconSize="16dp"
                         app:iconTint="@{post.replyIconTint(context)}"
-                        app:rippleColor="?attr/colorControlHighlight" />
-
-
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/favour_button"
-                        style="?attr/borderlessButtonStyle"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:minWidth="0dp"
-                        android:minHeight="0dp"
-                        android:transitionName="favour"
-                        app:icon="@{post.favorIcon(context)}"
-                        app:iconPadding="0dp"
-                        app:iconSize="16dp"
-                        app:iconTint="@{post.favorIconTint(context)}"
                         app:rippleColor="?attr/colorControlHighlight" />
 
                     <Space

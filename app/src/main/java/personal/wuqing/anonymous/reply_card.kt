@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.DialogInterface
 import android.content.res.ColorStateList
 import android.text.SpannableString
+import android.util.Log
 import android.util.TypedValue
 import android.view.LayoutInflater
 import android.view.View
@@ -38,7 +39,6 @@ object ReplyListPost : ReplyListElem()
 object ReplyListOrder : ReplyListElem()
 object ReplyListBottom : ReplyListElem()
 
-@ExperimentalTime
 data class Reply constructor(
     val id: String,
     val update: String,
@@ -50,6 +50,7 @@ data class Reply constructor(
     val toName: String,
     val toFloor: Int
 ) : ReplyListElem(), Serializable {
+    @ExperimentalTime
     constructor(json: JSONObject, nameG: NameG, colorG: ColorG) : this(
         id = json.getString("FloorID"),
         update = json.getString("RTime").untilNow().display(),
@@ -90,7 +91,6 @@ data class Reply constructor(
     )
 }
 
-@ExperimentalTime
 class ReplyAdapter(
     private val replyInit: ReplyCardBinding.() -> Unit,
     private val sortInit: ReplySortBinding.() -> Unit,
@@ -117,8 +117,8 @@ class ReplyAdapter(
         }
 
         class Sort(
-            private val binding: ReplySortBinding,
-            private val init: ReplySortBinding.() -> Unit
+            binding: ReplySortBinding,
+            init: ReplySortBinding.() -> Unit
         ) : ViewHolder(binding.root) {
             init {
                 binding.init()
@@ -189,7 +189,6 @@ class ReplyAdapter(
     }
 }
 
-@ExperimentalTime
 object ReplyDiffCallback : DiffUtil.ItemCallback<ReplyListElem>() {
     override fun areItemsTheSame(oldItem: ReplyListElem, newItem: ReplyListElem): Boolean {
         return (oldItem is Reply && newItem is Reply && oldItem.id == newItem.id) || oldItem == newItem
@@ -200,7 +199,6 @@ object ReplyDiffCallback : DiffUtil.ItemCallback<ReplyListElem>() {
     }
 }
 
-@ExperimentalTime
 @BindingAdapter("textMagic")
 fun CardView.textMagic(reply: Reply) {
     val binding = DataBindingUtil.getBinding<ReplyCardBinding>(this)!!
@@ -230,7 +228,6 @@ fun CardView.textMagic(reply: Reply) {
     }
 }
 
-@ExperimentalTime
 class ReplyListViewModel : ViewModel() {
     val post = MutableLiveData<Post>()
     val list = MutableLiveData(listOf<Reply>())
@@ -240,13 +237,16 @@ class ReplyListViewModel : ViewModel() {
     val sending = MutableLiveData(false)
     val success = MutableLiveData(false)
     val order = MutableLiveData(false)
+    val favor = MutableLiveData(false)
+    var postId = ""
     private var last = "NULL"
 
+    @ExperimentalTime
     fun refresh(context: Context) = viewModelScope.launch {
         refresh.value = true
         delay(300)
         try {
-            val (pair, newList) = Network.fetchReply(post.value!!.id, order.value!!)
+            val (pair, newList) = Network.fetchReply(postId, order.value!!)
             val (last, newPost) = pair
             this@ReplyListViewModel.last = last
             post.value = newPost
@@ -266,11 +266,12 @@ class ReplyListViewModel : ViewModel() {
         }
     }
 
-    fun more(context: Context, id: String? = null) = viewModelScope.launch {
+    @ExperimentalTime
+    fun more(context: Context) = viewModelScope.launch {
         bottom.value = BottomStatus.REFRESHING
         try {
             delay(300)
-            val (pair, newList) = Network.fetchReply(id ?: post.value!!.id, order.value!!, last)
+            val (pair, newList) = Network.fetchReply(postId, order.value!!, last)
             val (last, newPost) = pair
             this@ReplyListViewModel.last = last
             post.value = newPost
@@ -290,11 +291,11 @@ class ReplyListViewModel : ViewModel() {
         try {
             binding.reply?.apply {
                 if (like) {
-                    Network.unlikeReply(post.value!!.id, id)
+                    Network.unlikeReply(postId, id)
                     like = false
                     likeCount--
                 } else {
-                    Network.likeReply(post.value!!.id, id)
+                    Network.likeReply(postId, id)
                     like = true
                     likeCount++
                 }
@@ -315,11 +316,12 @@ class ReplyListViewModel : ViewModel() {
         sending.value = true
         delay(300)
         try {
-            Network.reply(post.value!!.id, editText.tag as String, editText.text.toString())
+            Network.reply(postId, editText.tag as String, editText.text.toString())
             success.value = true
         } catch (e: Network.NotLoggedInException) {
             editText.context.needLogin()
         } catch (e: Exception) {
+            Log.e("exception", e.stackTraceToString())
             info.value = "网络错误"
         } finally {
             sending.value = false
@@ -329,14 +331,22 @@ class ReplyListViewModel : ViewModel() {
     fun like(binding: PostCardBinding) = viewModelScope.launch {
         try {
             binding.post?.apply {
-                if (like) {
-                    Network.unlikePost(id)
-                    like = false
-                    likeCount--
-                } else {
-                    Network.likePost(id)
-                    like = true
-                    likeCount++
+                when (like) {
+                    null -> info.value = "手速太快啦，请稍后再试"
+                    true -> {
+                        like = null
+                        binding.invalidateAll()
+                        Network.unlikePost(id)
+                        like = false
+                        likeCount--
+                    }
+                    false -> {
+                        like = null
+                        binding.invalidateAll()
+                        Network.likePost(id)
+                        like = true
+                        likeCount++
+                    }
                 }
             }
             binding.invalidateAll()
@@ -347,15 +357,38 @@ class ReplyListViewModel : ViewModel() {
         }
     }
 
-    fun favor(binding: PostCardBinding) = viewModelScope.launch {
+    fun favor(context: Context) = viewModelScope.launch {
         try {
-            binding.post?.apply {
-                if (favor) Network.deFavorPost(id) else Network.favorPost(id)
-                favor = !favor
+            when (favor.value) {
+                null -> info.value = "手速太快啦，请稍后再试"
+                true -> {
+                    delay(500)
+                    favor.value = null
+                    Network.deFavorPost(postId)
+                    info.value = "取消收藏成功"
+                    favor.value = false
+                }
+                false -> {
+                    delay(500)
+                    favor.value = null
+                    Network.favorPost(postId)
+                    info.value = "收藏成功"
+                    favor.value = true
+                }
             }
-            binding.invalidateAll()
         } catch (e: Network.NotLoggedInException) {
-            binding.root.context.needLogin()
+            context.needLogin()
+        } catch (e: Exception) {
+            info.value = "网络错误"
+        }
+    }
+
+    fun report(context: Context) = viewModelScope.launch {
+        try {
+            Network.report(postId)
+            info.value = "举报成功"
+        } catch (e: Network.NotLoggedInException) {
+            context.needLogin()
         } catch (e: Exception) {
             info.value = "网络错误"
         }

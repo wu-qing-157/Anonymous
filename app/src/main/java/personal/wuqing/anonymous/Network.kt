@@ -8,7 +8,6 @@ import java.net.Socket
 import kotlin.random.Random
 import kotlin.time.ExperimentalTime
 
-@ExperimentalTime
 object Network {
     private const val IP = "182.254.145.254"
     private const val PORT = 8080
@@ -85,23 +84,19 @@ object Network {
         TIME("1"), FAVOURED("6"), MY("7"), TRENDING("d")
     }
 
+    @ExperimentalTime
     suspend fun fetchPost(type: PostType, category: Post.Category, last: String = "NULL") =
         withContext(Dispatchers.IO) {
             getData(op = type.op, p1 = last, p2 = category.id.toString()) {
                 var lastSeen = "NULL"
                 for (key in keys()) if (key.startsWith("LastSeen")) lastSeen = getString(key)
                 lastSeen to getJSONArray("thread_list").let {
-                    (0 until it.length()).map { i ->
-                        getData(
-                            op = "2", p1 = it.getJSONObject(i).getString("ThreadID"), p2 = "NULL"
-                        ) {
-                            Post(getJSONObject("this_thread"), false)
-                        }
-                    }
+                    (0 until it.length()).map { i -> Post(it.getJSONObject(i), false) }
                 }
             }
         }
 
+    @ExperimentalTime
     suspend fun search(keyword: String, last: String = "NULL") = withContext(Dispatchers.IO) {
         getData(op = "b", p1 = keyword, p2 = last) {
             var lastSeen = "NULL"
@@ -112,6 +107,7 @@ object Network {
         }
     }
 
+    @ExperimentalTime
     suspend fun fetchReply(postId: String, order: Boolean, last: String = "NULL") =
         withContext(Dispatchers.IO) {
             getData(op = "2", p1 = postId, p2 = last, p3 = if (order) "1" else "0") {
@@ -153,5 +149,9 @@ object Network {
             p4 = anonymousType.id,
             p5 = (if (random) Random.nextInt(1000000) else 0).toString()
         ) { true }
+    }
+
+    suspend fun report(id: String) = withContext(Dispatchers.IO) {
+        getData(op = "e", p1 = id) { true }
     }
 }

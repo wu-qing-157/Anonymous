@@ -35,22 +35,27 @@ import personal.wuqing.anonymous.databinding.RecycleBottomBinding
 import java.io.Serializable
 import kotlin.time.ExperimentalTime
 
-@ExperimentalTime
+sealed class PostListElem : Serializable
+
+object PostListFilter : PostListElem()
+object PostListBottom : PostListElem()
+
 data class Post constructor(
-    var showInDetail: Boolean,
+    val showInDetail: Boolean,
     val id: String,
     val update: String,
     val post: String,
     val title: String,
     val content: String,
-    var like: Boolean,
+    var like: Boolean?,
     var likeCount: Int,
     val replyCount: Int,
-    var favor: Boolean,
+    var favor: Boolean?,
     val readCount: Int,
     val colorG: ColorG,
     val nameG: NameG,
-) : Serializable {
+) : PostListElem(), Serializable {
+    @ExperimentalTime
     constructor(json: JSONObject, showInDetail: Boolean) : this(
         showInDetail = showInDetail,
         id = json.getString("ThreadID"),
@@ -58,10 +63,10 @@ data class Post constructor(
         post = json.getString("PostTime").untilNow().display(),
         title = json.getString("Title"),
         content = json.getString("Summary"),
-        like = json.getInt("WhetherLike") == 1,
+        like = json.has("WhetherLike").takeIf { it }?.let { json.getInt("WhetherLike") == 1 },
         likeCount = json.getInt("Like"),
         replyCount = json.getInt("Comment"),
-        favor = json.has("WhetherFavour") && json.getInt("WhetherFavour") == 1,
+        favor = json.has("WhetherFavour").takeIf { it }?.let { json.getInt("WhetherFavour") == 1 },
         readCount = json.getInt("Read"),
         colorG = ColorG(json.getLong("RandomSeed")),
         nameG = NameG(json.getString("AnonymousType"), json.getLong("RandomSeed")),
@@ -71,6 +76,8 @@ data class Post constructor(
     fun avatarC() = nameG[0].split(" ").last()[0].toString()
 
     fun id() = if (showInDetail) nameG[0] else "#$id"
+    fun update() = if (showInDetail) post else update
+
     fun titleWithLink(context: Context) =
         if (showInDetail) SpannableString(title).apply { links(context as Activity) } else title
 
@@ -80,6 +87,7 @@ data class Post constructor(
     fun likeCount() = likeCount.toString()
     fun replyCount() = replyCount.toString()
     fun readCount() = readCount.toString()
+    fun titleMaxLines() = Int.MAX_VALUE
     fun contentMaxLines() = if (showInDetail) Int.MAX_VALUE else 5
 
     @ExperimentalUnsignedTypes
@@ -96,18 +104,12 @@ data class Post constructor(
     )
 
     fun likeIcon(context: Context) = ContextCompat.getDrawable(
-        context, if (like) R.drawable.ic_thumb_up else R.drawable.ic_thumb_up_outlined
-    )
-
-    fun favorIcon(context: Context) = ContextCompat.getDrawable(
-        context, if (favor) R.drawable.ic_favorite else R.drawable.ic_favorite_border
+        context,
+        if (like != false) R.drawable.ic_thumb_up else R.drawable.ic_thumb_up_outlined
     )
 
     @ExperimentalUnsignedTypes
-    fun likeIconTint(context: Context) = iconTint(context, like)
-
-    @ExperimentalUnsignedTypes
-    fun favorIconTint(context: Context) = iconTint(context, favor)
+    fun likeIconTint(context: Context) = iconTint(context, like == true)
 
     @ExperimentalUnsignedTypes
     fun replyIconTint(context: Context) = iconTint(context, false)
@@ -131,12 +133,11 @@ data class Post constructor(
     }
 }
 
-@ExperimentalTime
 class PostAdapter(
     private val filterInit: PostFilterBinding.() -> Unit,
     private val postInit: PostCardBinding.() -> Unit,
     private val bottomInit: RecycleBottomBinding.() -> Unit,
-) : ListAdapter<Post, PostAdapter.ViewHolder>(PostDiffCallback) {
+) : ListAdapter<PostListElem, PostAdapter.ViewHolder>(PostDiffCallback) {
     companion object {
         const val FILTER = 1
         const val POST = 0
@@ -197,7 +198,11 @@ class PostAdapter(
     }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-        if (holder is ViewHolder.PostCard) holder.bind(getItem(position), position)
+        when (holder) {
+            is ViewHolder.PostCard -> holder.bind(getItem(position) as Post, position)
+            is ViewHolder.Filter -> Unit
+            is ViewHolder.Bottom -> Unit
+        }
     }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int, payloads: MutableList<Any>) {
@@ -207,26 +212,22 @@ class PostAdapter(
     }
 
     override fun getItemViewType(position: Int): Int {
-        return when (position) {
-            0 -> FILTER
-            currentList.size - 1 -> BOTTOM
-            else -> POST
+        return when (getItem(position)) {
+            PostListFilter -> FILTER
+            PostListBottom -> BOTTOM
+            is Post -> POST
         }
     }
 }
 
-@ExperimentalTime
-object PostDiffCallback : DiffUtil.ItemCallback<Post>() {
-    override fun areItemsTheSame(oldItem: Post, newItem: Post): Boolean {
-        return oldItem.id == newItem.id
-    }
+object PostDiffCallback : DiffUtil.ItemCallback<PostListElem>() {
+    override fun areItemsTheSame(oldItem: PostListElem, newItem: PostListElem) =
+        oldItem == newItem || (oldItem is Post && newItem is Post && oldItem.id == newItem.id)
 
-    override fun areContentsTheSame(oldItem: Post, newItem: Post): Boolean {
-        return oldItem == newItem
-    }
+    override fun areContentsTheSame(oldItem: PostListElem, newItem: PostListElem) =
+        oldItem == newItem
 }
 
-@ExperimentalTime
 @BindingAdapter("textMagic")
 fun CardView.textMagic(post: Post) {
     val binding = DataBindingUtil.getBinding<PostCardBinding>(this)!!
@@ -249,21 +250,16 @@ fun CardView.textMagic(post: Post) {
             if (post.showInDetail) arrayOf()
             else links.map { (it, _) -> "跳转到 $it" }.toTypedArray()
         val items = arrayOf(
-            if (post.favor) "取消收藏" else "收藏",
             "复制标题", "复制内容", "自由复制",
             *displayLinks
         )
         MaterialAlertDialogBuilder(context).apply {
             setItems(items) { _: DialogInterface, i: Int ->
                 when (i) {
-                    0 -> when (context) {
-                        is MainActivity -> context.model.favor(binding)
-                        is PostDetailActivity -> context.model.favor(binding)
-                    }
-                    1 -> copy(context, post.title)
-                    2 -> copy(context, post.content)
-                    3 -> showSelectDialog(context, spannable)
-                    else -> context.launchCustomTab(links[i - 4].second)
+                    0 -> copy(context, post.title)
+                    1 -> copy(context, post.content)
+                    2 -> showSelectDialog(context, spannable)
+                    else -> links[i - 3].second()
                 }
             }
             show()
@@ -277,9 +273,21 @@ fun CardView.textMagic(post: Post) {
         isClickable = false
         isLongClickable = false
     }
+    if (post.showInDetail) binding.likeButton.apply {
+        isClickable = true
+        isFocusable = true
+        rippleColor = ColorStateList.valueOf(TypedValue().run {
+            context.theme.resolveAttribute(R.attr.colorControlHighlight, this, true)
+            data
+        })
+    }
+    else binding.likeButton.apply {
+        isClickable = false
+        isFocusable = false
+        rippleColor = ColorStateList.valueOf(0xffffff)
+    }
 }
 
-@ExperimentalTime
 class PostListViewModel : ViewModel() {
     val list = MutableLiveData(listOf<Post>())
     val info = MutableLiveData("")
@@ -306,6 +314,7 @@ class PostListViewModel : ViewModel() {
     var refreshingJob: Job? = null
     private var last = "NULL"
 
+    @ExperimentalTime
     fun refresh(context: Context) {
         refreshingJob?.cancel(CancellationException())
         refreshingJob = viewModelScope.launch {
@@ -336,6 +345,7 @@ class PostListViewModel : ViewModel() {
         }
     }
 
+    @ExperimentalTime
     fun more(context: Context) {
         refreshingJob?.cancel(CancellationException())
         refreshingJob = viewModelScope.launch {
@@ -361,42 +371,6 @@ class PostListViewModel : ViewModel() {
                 if (bottom.value == BottomStatus.REFRESHING)
                     bottom.value = BottomStatus.NETWORK_ERROR
             }
-        }
-    }
-
-    fun like(binding: PostCardBinding) = viewModelScope.launch {
-        try {
-            binding.post?.apply {
-                if (like) {
-                    Network.unlikePost(id)
-                    like = false
-                    likeCount--
-                } else {
-                    Network.likePost(id)
-                    like = true
-                    likeCount++
-                }
-            }
-            binding.invalidateAll()
-        } catch (e: Network.NotLoggedInException) {
-            binding.root.context.needLogin()
-        } catch (e: Exception) {
-            info.value = "网络错误"
-        }
-    }
-
-    fun favor(binding: PostCardBinding) = viewModelScope.launch {
-        try {
-            binding.post?.apply {
-                if (favor) Network.deFavorPost(id) else Network.favorPost(id)
-                favor = !favor
-                info.value = if (favor) "收藏成功" else "取消收藏成功"
-            }
-            binding.invalidateAll()
-        } catch (e: Network.NotLoggedInException) {
-            binding.root.context.needLogin()
-        } catch (e: Exception) {
-            info.value = "网络错误"
         }
     }
 }

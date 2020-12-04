@@ -5,18 +5,23 @@
     <item
         android:id="@+id/app_bar_search"
         android:icon="@drawable/ic_search"
-        android:title="Search"
+        android:title="搜索"
         app:actionViewClass="androidx.appcompat.widget.SearchView"
         app:showAsAction="ifRoom|collapseActionView" />
 
     <item
         android:id="@+id/refresh"
         android:icon="@drawable/ic_refresh"
-        android:title="Refresh"
+        android:title="刷新"
         app:showAsAction="ifRoom" />
 
     <item
         android:id="@+id/settings"
-        android:title="Settings"
+        android:title="设置"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/logout"
+        android:title="退出登录"
         app:showAsAction="never" />
 </menu>

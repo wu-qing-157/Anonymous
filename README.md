@@ -32,7 +32,6 @@ If some *major* change to 无可奉告 is needed in the future:
 
 Please refer to the GitHub [release](https://github.com/wu-qing-157/Anonymous/releases) page.
 
-This repo is in *alpha-alpha* test stage, so currently has no releases.
 There will be some *alpha* releases as an unofficial implementation in the future.
 
 ### Acknowledgement

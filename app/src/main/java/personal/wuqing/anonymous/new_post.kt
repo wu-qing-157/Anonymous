@@ -2,27 +2,26 @@ package personal.wuqing.anonymous
 
 import android.content.Context
 import android.content.Intent
+import android.graphics.Color
 import android.os.Bundle
-import android.transition.Fade
-import android.transition.Slide
-import android.transition.TransitionSet
 import android.view.*
-import android.widget.PopupMenu
 import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.widget.PopupMenu
 import androidx.core.view.MenuCompat
 import androidx.databinding.DataBindingUtil
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.android.material.button.MaterialButton
 import com.google.android.material.snackbar.Snackbar
+import com.google.android.material.transition.platform.MaterialContainerTransform
+import com.google.android.material.transition.platform.MaterialContainerTransformSharedElementCallback
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import personal.wuqing.anonymous.databinding.ActivityNewBinding
-import kotlin.time.ExperimentalTime
 
-@ExperimentalTime
 class NewPostModel : ViewModel() {
     val sending = MutableLiveData(false)
     val success = MutableLiveData(false)
@@ -54,104 +53,104 @@ class NewPostModel : ViewModel() {
     }
 }
 
-@ExperimentalTime
 class NewPostActivity : AppCompatActivity() {
     lateinit var binding: ActivityNewBinding
     val model by viewModels<NewPostModel>()
+
+    companion object {
+        val categoryMap = mapOf(
+            R.id.campus to Post.Category.SPORT,
+            R.id.music to Post.Category.MUSIC,
+            R.id.science to Post.Category.SCIENCE,
+            R.id.it to Post.Category.IT,
+            R.id.entertain to Post.Category.ENTERTAINMENT,
+            R.id.emotion to Post.Category.EMOTION,
+            R.id.social to Post.Category.SOCIAL,
+            R.id.others to Post.Category.OTHERS,
+        )
+        val themeMap = mapOf(
+            R.id.alice_and_bob to NameTheme.ALICE_AND_BOB,
+            R.id.us_president to NameTheme.US_PRESIDENT,
+            R.id.tarot to NameTheme.TAROT,
+        )
+    }
+
+    private fun showCategory(button: MaterialButton) {
+        PopupMenu(this, button, Gravity.NO_GRAVITY, R.attr.popupMenuStyle, 0).apply {
+            MenuCompat.setGroupDividerEnabled(menu, true)
+            menuInflater.inflate(R.menu.categories, menu)
+            setOnMenuItemClickListener {
+                binding.category.text = it.title
+                binding.category.tag = categoryMap[it.itemId] ?: error("")
+                dismiss()
+                true
+            }
+            show()
+        }
+    }
+
+    private fun showTheme(button: MaterialButton) {
+        PopupMenu(this, button, Gravity.NO_GRAVITY, R.attr.popupMenuStyle, 0).apply {
+            MenuCompat.setGroupDividerEnabled(menu, true)
+            menuInflater.inflate(R.menu.name_theme, menu)
+            setOnMenuItemClickListener {
+                binding.theme.text = it.title
+                binding.theme.tag = themeMap[it.itemId] ?: error("")
+                dismiss()
+                true
+            }
+            show()
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         postponeEnterTransition()
         loadToken()
-        binding = DataBindingUtil.setContentView(this, R.layout.activity_new)
+        binding =
+            DataBindingUtil.setContentView<ActivityNewBinding>(this, R.layout.activity_new).apply {
+                theme.tag = NameTheme.ALICE_AND_BOB
+                category.setOnClickListener { showCategory(category) }
+                categoryRow.setOnClickListener { showCategory(category) }
+                theme.setOnClickListener { showTheme(theme) }
+                themeRow.setOnClickListener { showTheme(theme) }
+                shuffleRow.setOnClickListener { shuffle.isChecked = !shuffle.isChecked }
+            }
         setSupportActionBar(binding.toolbar)
-        binding.apply {
-            toolbar.setNavigationOnClickListener { finishAfterTransition() }
-            theme.tag = NameTheme.ALICE_AND_BOB
-            fun showCategoryMenu() = PopupMenu(
-                this@NewPostActivity, category,
-                Gravity.NO_GRAVITY, R.attr.popupMenuStyle, 0
-            ).apply {
-                MenuCompat.setGroupDividerEnabled(menu, true)
-                menuInflater.inflate(R.menu.categories, menu)
-                setOnMenuItemClickListener { item ->
-                    category.text = item.title
-                    category.tag = when (item.itemId) {
-                        R.id.sports -> Post.Category.SPORT
-                        R.id.music -> Post.Category.MUSIC
-                        R.id.science -> Post.Category.SCIENCE
-                        R.id.it -> Post.Category.IT
-                        R.id.entertain -> Post.Category.ENTERTAINMENT
-                        R.id.emotion -> Post.Category.EMOTION
-                        R.id.social -> Post.Category.SOCIAL
-                        R.id.others -> Post.Category.OTHERS
-                        else -> error("")
-                    }
-                    dismiss()
-                    true
-                }
-                show()
-            }
+        binding.toolbar.setNavigationOnClickListener { finishAfterTransition() }
 
-            fun showThemeMenu() = PopupMenu(
-                this@NewPostActivity, theme,
-                Gravity.NO_GRAVITY, R.attr.popupMenuStyle, 0
-            ).apply {
-                MenuCompat.setGroupDividerEnabled(menu, true)
-                menuInflater.inflate(R.menu.name_theme, menu)
-                setOnMenuItemClickListener { item ->
-                    theme.text = item.title
-                    theme.tag = when (item.itemId) {
-                        R.id.alice_and_bob -> NameTheme.ALICE_AND_BOB
-                        R.id.us_president -> NameTheme.US_PRESIDENT
-                        R.id.tarot -> NameTheme.TAROT
-                        else -> error("")
-                    }
-                    dismiss()
-                    true
+        model.sending.observe(this) {
+            findViewById<View>(R.id.send).visibility = if (it) View.GONE else View.VISIBLE
+            binding.progress.visibility = if (it) View.VISIBLE else View.GONE
+            binding.apply {
+                listOf(
+                    category, categoryRow, theme, themeRow, shuffle, shuffleRow, title, content
+                ).forEach { view ->
+                    view.isEnabled = !it
                 }
-                show()
-            }
-            category.setOnClickListener { showCategoryMenu() }
-            categoryRow.setOnClickListener { showCategoryMenu() }
-            theme.setOnClickListener { showThemeMenu() }
-            themeRow.setOnClickListener { showThemeMenu() }
-            shuffleRow.setOnClickListener { shuffle.isChecked = !shuffle.isChecked }
-        }
-        model.apply {
-            sending.observe(this@NewPostActivity) {
-                binding.apply {
-                    findViewById<View>(R.id.send).visibility = if (it) View.GONE else View.VISIBLE
-                    progress.visibility = if (it) View.VISIBLE else View.GONE
-                    category.isEnabled = !it
-                    theme.isEnabled = !it
-                    shuffle.isEnabled = !it
-                    shuffleRow.isEnabled = !it
-                    title.isEnabled = !it
-                    content.isEnabled = !it
-                }
-            }
-            success.observe(this@NewPostActivity) {
-                if (it) {
-                    Toast.makeText(this@NewPostActivity, "发送成功", Toast.LENGTH_SHORT).show()
-                    finish()
-                }
-            }
-            info.observe(this@NewPostActivity) {
-                if (!it.isNullOrBlank())
-                    Snackbar.make(binding.layout, it, Snackbar.LENGTH_SHORT).show()
             }
         }
-        TransitionSet().apply {
-            addTransition(Slide(Gravity.END).apply {
-                excludeTarget(binding.appbar, true)
-            })
-            addTransition(Fade().apply {
-                addTarget(binding.appbar)
-            })
-        }.let {
-            window.enterTransition = it
-            window.returnTransition = it
+        model.success.observe(this) {
+            if (it) {
+                Toast.makeText(this, "发送成功", Toast.LENGTH_SHORT).show()
+                finishAfterTransition()
+            }
+        }
+        model.info.observe(this) {
+            if (!it.isNullOrBlank()) Snackbar.make(binding.layout, it, Snackbar.LENGTH_SHORT).show()
+        }
+
+        findViewById<View>(android.R.id.content).transitionName = "bottom"
+        setEnterSharedElementCallback(MaterialContainerTransformSharedElementCallback())
+        MaterialContainerTransform().apply {
+            addTarget(android.R.id.content)
+            isElevationShadowEnabled = false
+            startContainerColor = Color.TRANSPARENT
+            containerColor = Color.WHITE
+            fadeMode = MaterialContainerTransform.FADE_MODE_THROUGH
+            duration = 400L
+            window.sharedElementEnterTransition = this
+            window.sharedElementReturnTransition = this
         }
         window.decorView.viewTreeObserver.addOnPreDrawListener {
             startPostponedEnterTransition()
@@ -164,15 +163,16 @@ class NewPostActivity : AppCompatActivity() {
     }
 
     override fun onOptionsItemSelected(item: MenuItem) = when (item.itemId) {
-        R.id.send -> true.also {
+        R.id.send -> binding.run {
             model.send(
-                title = binding.title.text.toString(),
-                category = binding.category.tag as? Post.Category,
-                content = binding.content.text.toString(),
-                theme = binding.theme.tag as? NameTheme,
-                random = binding.shuffle.isChecked,
-                this
+                title = title.text.toString(),
+                category = category.tag as? Post.Category,
+                content = content.text.toString(),
+                theme = theme.tag as? NameTheme,
+                random = shuffle.isChecked,
+                this@NewPostActivity
             )
+            true
         }
         else -> false
     }

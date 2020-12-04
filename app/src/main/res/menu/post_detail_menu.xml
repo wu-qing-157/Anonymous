@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+    <item
+        android:id="@+id/favor"
+        android:icon="@drawable/ic_star_border"
+        android:title="收藏"
+        app:showAsAction="ifRoom" />
+
+    <item
+        android:id="@+id/share"
+        android:icon="@drawable/ic_share"
+        android:title="分享"
+        app:showAsAction="ifRoom" />
+
+    <item
+        android:id="@+id/report"
+        android:title="举报"
+        app:showAsAction="never" />
+</menu>

@@ -19,6 +19,8 @@ import android.util.TypedValue
 import android.view.Gravity
 import android.view.MotionEvent
 import android.view.View
+import android.view.animation.AccelerateInterpolator
+import android.view.animation.DecelerateInterpolator
 import android.widget.TextView
 import androidx.browser.customtabs.CustomTabsIntent
 import androidx.core.graphics.toColorInt
@@ -34,6 +36,8 @@ import kotlin.time.*
 enum class BottomStatus {
     REFRESHING, NO_MORE, NETWORK_ERROR, IDLE
 }
+
+fun View.pair(): android.util.Pair<View, String> = android.util.Pair.create(this, transitionName)
 
 fun Context.launchCustomTab(uri: Uri) {
     CustomTabsIntent.Builder().apply {
@@ -82,19 +86,17 @@ object MagicSelectableClickableMovementMethod : ArrowKeyMovementMethod() {
     }
 }
 
-@ExperimentalTime
 fun copy(context: Context, s: String) {
     context.getSystemService(ClipboardManager::class.java).setPrimaryClip(
         ClipData.newPlainText("", s)
     )
-    val view = when (context) {
+    val base = when (context) {
         is MainActivity -> context.binding.swipeRefresh
         is PostDetailActivity -> context.binding.swipeRefresh
         else -> error("")
     }
-    Snackbar.make(view, "已复制: $s", Snackbar.LENGTH_SHORT).apply {
-        this.view.findViewById<TextView>(com.google.android.material.R.id.snackbar_text)
-            .maxLines = 1
+    Snackbar.make(base, "已复制: $s", Snackbar.LENGTH_SHORT).apply {
+        view.findViewById<TextView>(com.google.android.material.R.id.snackbar_text).maxLines = 1
         if (context is PostDetailActivity) anchorView = context.binding.bottomBar
         show()
     }
@@ -117,58 +119,70 @@ fun showSelectDialog(context: Context, spannable: SpannableString) {
     }
 }
 
-@ExperimentalTime
-fun SpannableString.links(activity: Activity): List<Pair<String, Uri>> {
-    val ret = mutableListOf<Pair<String, Uri>>()
-    Regex(Patterns.WEB_URL.pattern()).findAll(this).forEach {
-        Regex("[\u0000-\u007F].*[\u0000-\u007F]").find(it.value)?.apply {
-            val url = if (value.matches(Regex("^https?://.*"))) value else "http://${value}"
-            setSpan(
-                object : ClickableSpan() {
-                    override fun onClick(widget: View) {
-                        activity.launchCustomTab(Uri.parse(url))
-                    }
-                }, it.range.first + range.first, it.range.first + range.last + 1,
-                Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
-            )
-            ret += value
-                .replace(Regex("^https?://"), "")
-                .replace(Regex("^www\\."), "")
-                .run {
-                    if (length >= 27) substring(0, 25) + '\u22EF' else this
-                } to Uri.parse(url)
-        }
+fun SpannableString.links(activity: Activity): List<Pair<String, () -> Unit>> {
+    val ret = mutableListOf<Pair<String, () -> Unit>>()
+    Regex(Patterns.WEB_URL.pattern()).findAll(this).forEach { raw ->
+        Regex("[\u0000-\u007F]+").findAll(raw.value)
+            .filter { Regex(Patterns.WEB_URL.pattern()).matches(it.value) }
+            .forEach {
+                val url =
+                    if (it.value.matches(Regex("^https?://.*"))) it.value
+                    else "http://${it.value}"
+                setSpan(
+                    object : ClickableSpan() {
+                        override fun onClick(widget: View) {
+                            activity.launchCustomTab(Uri.parse(url))
+                        }
+                    },
+                    raw.range.first + it.range.first, raw.range.first + it.range.last + 1,
+                    Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+                )
+                ret += it.value
+                    .replace(Regex("^https?://"), "")
+                    .replace(Regex("^www\\."), "")
+                    .run {
+                        if (length >= 27) substring(0, 25) + '\u22EF' else this
+                    } to { activity.launchCustomTab(Uri.parse(url)) }
+            }
     }
     Regex("wkfg://[0-9]+").findAll(this).forEach {
+        val action = {
+            fun View.pair() = android.util.Pair.create(this, this.transitionName)
+            val options = ActivityOptions.makeSceneTransitionAnimation(
+                activity,
+                when (activity) {
+                    is MainActivity -> activity.binding.fab
+                    is PostDetailActivity -> activity.binding.bottomBar
+                    else -> error("")
+                }.pair(),
+                when (activity) {
+                    is MainActivity -> activity.binding.appbar
+                    is PostDetailActivity -> activity.binding.appbar
+                    else -> error("")
+                }.pair(),
+                activity.findViewById<View>(android.R.id.statusBarBackground).pair(),
+            )
+            activity.window.exitTransition = Slide(Gravity.START).apply {
+                interpolator = AccelerateInterpolator()
+            }
+            activity.window.reenterTransition = Slide(Gravity.START).apply {
+                interpolator = DecelerateInterpolator()
+            }
+            activity.startActivity(
+                Intent(Intent.ACTION_VIEW, Uri.parse(it.value)).apply {
+                    setClass(activity, PostDetailActivity::class.java)
+                }, options.toBundle()
+            )
+        }
         setSpan(
             object : ClickableSpan() {
                 override fun onClick(widget: View) {
-                    fun View.pair() = android.util.Pair.create(this, this.transitionName)
-                    val options = ActivityOptions.makeSceneTransitionAnimation(
-                        activity,
-                        *when (activity) {
-                            is MainActivity -> listOf(
-                                activity.findViewById<View>(android.R.id.statusBarBackground),
-                                activity.binding.fab,
-                                activity.binding.appbar
-                            )
-                            is PostDetailActivity -> listOf(
-                                activity.findViewById<View>(android.R.id.statusBarBackground),
-                                activity.binding.bottomBar,
-                                activity.binding.appbar
-                            )
-                            else -> error("")
-                        }.map { v -> v.pair() }.toTypedArray()
-                    )
-                    activity.window.exitTransition = Slide(Gravity.START)
-                    activity.startActivity(
-                        Intent(Intent.ACTION_VIEW, Uri.parse(it.value)), options.toBundle()
-                    )
+                    action()
                 }
             }, it.range.first, it.range.last + 1,
             Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
         )
-        ret += it.value to Uri.parse(it.value)
+        ret += it.value to action
     }
     return ret
 }

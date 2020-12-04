@@ -15,28 +15,33 @@ import androidx.databinding.DataBindingUtil
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import personal.wuqing.anonymous.databinding.ActivityLoginBinding
 import java.util.*
-import kotlin.time.ExperimentalTime
 
 const val LOGIN_RESULT = 20201129 and 0xffff
 
-@ExperimentalTime
 fun Context.needLogin() = (this as Activity).apply {
     startActivityForResult(Intent(this, LoginActivity::class.java), LOGIN_RESULT)
 }
 
-@ExperimentalTime
+fun Context.clearToken() {
+    Network.token = ""
+    with(getSharedPreferences("login", Context.MODE_PRIVATE).edit()) {
+        remove("token")
+        commit()
+    }
+}
+
 fun Context.loadToken() {
     getSharedPreferences("login", Context.MODE_PRIVATE).getString("token", null)?.let {
         Network.token = it
     }
 }
 
-@ExperimentalTime
 class LoginViewModel : ViewModel() {
     val count = MutableLiveData(0)
     val loginProcess = MutableLiveData(false)
@@ -95,7 +100,6 @@ class LoginViewModel : ViewModel() {
     }
 }
 
-@ExperimentalTime
 class LoginActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         val prefs = getSharedPreferences("login", MODE_PRIVATE)
@@ -158,6 +162,14 @@ class LoginActivity : AppCompatActivity() {
                 setResult(LOGIN_RESULT)
                 finish()
             }
+        }
+        MaterialAlertDialogBuilder(this).apply {
+            setTitle("隐私协议")
+            setMessage(R.string.rule)
+            setPositiveButton("同意", null)
+            setNegativeButton("不同意") { _, _ -> finish() }
+            setCancelable(false)
+            show()
         }
     }
 }

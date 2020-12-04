@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <transitionSet xmlns:android="http://schemas.android.com/apk/res/android">
     <changeBounds android:interpolator="@android:interpolator/fast_out_slow_in" />
+    <changeTransform android:interpolator="@android:interpolator/fast_out_slow_in" />
+    <changeClipBounds android:interpolator="@android:interpolator/fast_out_slow_in" />
 </transitionSet>
