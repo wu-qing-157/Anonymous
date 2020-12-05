@@ -68,7 +68,7 @@ data class Post constructor(
         replyCount = json.getInt("Comment"),
         favor = json.has("WhetherFavour").takeIf { it }?.let { json.getInt("WhetherFavour") == 1 },
         readCount = json.getInt("Read"),
-        colorG = ColorG(json.getLong("RandomSeed")),
+        colorG = ColorG(json.getString("ThreadID").toLong()),
         nameG = NameG(json.getString("AnonymousType"), json.getLong("RandomSeed")),
     )
 

@@ -42,7 +42,7 @@ class PostDetailActivity : AppCompatActivity() {
             else (binding.recycle.adapter as ReplyAdapter).currentList.indexOfFirst {
                 it is Reply && it.id.toInt() == to
             }
-        if (target == 1) {
+        if (target == -1) {
             Snackbar.make(
                 binding.root, "暂不支持跳转至还未加载的楼层", Snackbar.LENGTH_SHORT
             ).apply {
@@ -306,7 +306,7 @@ class PostDetailActivity : AppCompatActivity() {
         R.id.report -> true.also {
             MaterialAlertDialogBuilder(this).apply {
                 setTitle("举报 #${model.postId}")
-                setMessage("确定要举报吗？\n帖子被举报 10 次后将被屏蔽，请勿滥用举办功能，我们一起共同维护无可奉告论坛环境。")
+                setMessage("确定要举报吗？\n帖子被举报 10 次后将被屏蔽，我们一起共同维护无可奉告论坛环境。")
                 setPositiveButton("! 确认举报 !") { _, _ -> model.report(this@PostDetailActivity) }
                 setNegativeButton("> 手滑了 <", null)
                 setCancelable(true)
