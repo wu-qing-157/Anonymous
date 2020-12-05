@@ -45,7 +45,7 @@ data class Reply constructor(
     val name: String,
     val avatar: Int,
     val content: String,
-    var like: Boolean,
+    var like: Like,
     var likeCount: Int,
     val toName: String,
     val toFloor: Int
@@ -53,11 +53,16 @@ data class Reply constructor(
     @ExperimentalTime
     constructor(json: JSONObject, nameG: NameG, colorG: ColorG) : this(
         id = json.getString("FloorID"),
-        update = json.getString("RTime").untilNow().display(),
+        update = json.getString("RTime").display(),
         name = nameG[json.getString("Speakername").toInt()],
         avatar = colorG[json.getString("Speakername").toInt()],
         content = json.getString("Context"),
-        like = json.getInt("WhetherLike") == 1,
+        like = when (json.getInt("WhetherLike")) {
+            -1 -> Like.DISLIKE
+            0 -> Like.NORMAL
+            1 -> Like.LIKE
+            else -> error("")
+        },
         likeCount = json.getInt("Like"),
         toName = nameG[json.getString("Replytoname").toInt()],
         toFloor = json.getInt("Replytofloor"),
@@ -71,15 +76,20 @@ data class Reply constructor(
     fun toName() = if (showTo()) toName else ""
     fun toFloor() = if (showTo()) "#$toFloor" else ""
     fun likeIcon(context: Context) = ContextCompat.getDrawable(
-        context, if (like) R.drawable.ic_thumb_up else R.drawable.ic_thumb_up_outlined
+        context,
+        when (like) {
+            Like.LIKE, Like.LIKE_WAIT -> R.drawable.ic_thumb_up_alt
+            Like.NORMAL -> R.drawable.ic_thumb_up_alt_outlined
+            Like.DISLIKE, Like.DISLIKE_WAIT -> R.drawable.ic_thumb_down_alt
+        }
     )
 
     fun contentWithLink(context: Context) =
         SpannableString(content).apply { links(context as Activity) }
 
     @ExperimentalUnsignedTypes
-    fun likeIconTint(context: Context) = ColorStateList.valueOf(
-        if (like) TypedValue().run {
+    private fun iconTint(context: Context, boolean: Boolean) = ColorStateList.valueOf(
+        if (boolean) TypedValue().run {
             context.theme.resolveAttribute(R.attr.colorPrimary, this, true)
             data
         } else TypedValue().run {
@@ -87,6 +97,14 @@ data class Reply constructor(
             data.toString(16).padStart(3, '0').toCharArray()
                 .joinToString("", prefix = "ff") { "$it$it" }
                 .toUInt(16).toInt()
+        }
+    )
+
+    @ExperimentalUnsignedTypes
+    fun likeIconTint(context: Context) = iconTint(
+        context, when (like) {
+            Like.LIKE, Like.DISLIKE -> true
+            else -> false
         }
     )
 }
@@ -199,14 +217,14 @@ object ReplyDiffCallback : DiffUtil.ItemCallback<ReplyListElem>() {
     }
 }
 
-@BindingAdapter("textMagic")
-fun CardView.textMagic(reply: Reply) {
+@BindingAdapter("magic")
+fun CardView.magic(reply: Reply) {
     val binding = DataBindingUtil.getBinding<ReplyCardBinding>(this)!!
     val context = context
     val showMenu = {
         val spannable = SpannableString(reply.content).apply { links(context as Activity) }
         val items = arrayOf(
-            "回复", "复制内容", "自由复制"
+            "回复", "复制内容", "自由复制", "踩", "举报"
         )
         MaterialAlertDialogBuilder(context).apply {
             setItems(items) { _: DialogInterface, i: Int ->
@@ -214,6 +232,17 @@ fun CardView.textMagic(reply: Reply) {
                     0 -> binding.root.performClick()
                     1 -> copy(context, reply.content)
                     2 -> showSelectDialog(context, spannable)
+                    3 -> (context as? PostDetailActivity)?.apply { model.dislike(binding) }
+                    4 -> (context as? PostDetailActivity)?.apply {
+                        MaterialAlertDialogBuilder(this).apply {
+                            setTitle("举报 #${model.postId} / #${reply.id}")
+                            setMessage("确定要举报吗？\n楼层被举报数次后将被屏蔽，我们一起维护无可奉告论坛环境。")
+                            setPositiveButton("! 确认举报 !") { _, _ -> model.report(context, reply) }
+                            setNegativeButton("> 手滑了 <", null)
+                            setCancelable(true)
+                            show()
+                        }
+                    }
                 }
             }
             show()
@@ -283,28 +312,69 @@ class ReplyListViewModel : ViewModel() {
         } catch (e: CancellationException) {
             bottom.value = BottomStatus.IDLE
         } catch (e: Exception) {
+            info.value = e.stackTraceToString()
             bottom.value = BottomStatus.NETWORK_ERROR
         }
     }
 
     fun like(binding: ReplyCardBinding) = viewModelScope.launch {
+        val old = binding.reply?.like
         try {
             binding.reply?.apply {
-                if (like) {
-                    Network.unlikeReply(postId, id)
-                    like = false
-                    likeCount--
-                } else {
-                    Network.likeReply(postId, id)
-                    like = true
-                    likeCount++
+                when (like) {
+                    Like.LIKE_WAIT, Like.DISLIKE_WAIT -> info.value = "手速太快啦，请稍后再试"
+                    Like.LIKE -> {
+                        like = Like.LIKE_WAIT
+                        binding.invalidateAll()
+                        Network.cancelLikeReply(postId, id)
+                        like = Like.NORMAL
+                        likeCount--
+                    }
+                    Like.NORMAL -> {
+                        like = Like.LIKE_WAIT
+                        binding.invalidateAll()
+                        Network.likeReply(postId, id)
+                        like = Like.LIKE
+                        likeCount++
+                    }
+                    Like.DISLIKE -> {
+                        like = Like.DISLIKE_WAIT
+                        binding.invalidateAll()
+                        Network.cancelDislikeReply(postId, id)
+                        like = Like.NORMAL
+                        likeCount++
+                    }
                 }
             }
-            binding.invalidateAll()
         } catch (e: Network.NotLoggedInException) {
             binding.root.context.needLogin()
+            binding.reply?.apply { like = old ?: Like.NORMAL }
         } catch (e: Exception) {
             info.value = "网络错误"
+            binding.reply?.apply { like = old ?: Like.NORMAL }
+        } finally {
+            binding.invalidateAll()
+        }
+    }
+
+    fun dislike(binding: ReplyCardBinding) = viewModelScope.launch {
+        val old = binding.reply?.like
+        try {
+            binding.reply?.apply {
+                like = Like.DISLIKE_WAIT
+                binding.invalidateAll()
+                Network.dislikeReply(postId, id)
+                like = Like.DISLIKE
+                likeCount--
+            }
+        } catch (e: Network.NotLoggedInException) {
+            binding.root.context.needLogin()
+            binding.reply?.apply { like = old ?: Like.NORMAL }
+        } catch (e: Exception) {
+            info.value = "网络错误"
+            binding.reply?.apply { like = old ?: Like.NORMAL }
+        } finally {
+            binding.invalidateAll()
         }
     }
 
@@ -329,31 +399,63 @@ class ReplyListViewModel : ViewModel() {
     }
 
     fun like(binding: PostCardBinding) = viewModelScope.launch {
+        val old = binding.post?.like
         try {
             binding.post?.apply {
                 when (like) {
-                    null -> info.value = "手速太快啦，请稍后再试"
-                    true -> {
-                        like = null
+                    Like.LIKE_WAIT, Like.DISLIKE_WAIT -> info.value = "手速太快啦，请稍后再试"
+                    Like.LIKE -> {
+                        like = Like.LIKE_WAIT
                         binding.invalidateAll()
-                        Network.unlikePost(id)
-                        like = false
+                        Network.cancelLikePost(id)
+                        like = Like.NORMAL
                         likeCount--
                     }
-                    false -> {
-                        like = null
+                    Like.NORMAL -> {
+                        like = Like.LIKE_WAIT
                         binding.invalidateAll()
                         Network.likePost(id)
-                        like = true
+                        like = Like.LIKE
+                        likeCount++
+                    }
+                    Like.DISLIKE -> {
+                        like = Like.DISLIKE_WAIT
+                        binding.invalidateAll()
+                        Network.cancelDislikePost(id)
+                        like = Like.NORMAL
                         likeCount++
                     }
                 }
             }
-            binding.invalidateAll()
         } catch (e: Network.NotLoggedInException) {
             binding.root.context.needLogin()
+            binding.post?.apply { like = old ?: Like.NORMAL }
         } catch (e: Exception) {
             info.value = "网络错误"
+            binding.post?.apply { like = old ?: Like.NORMAL }
+        } finally {
+            binding.invalidateAll()
+        }
+    }
+
+    fun dislike(binding: PostCardBinding) = viewModelScope.launch {
+        val old = binding.post?.like
+        try {
+            binding.post?.apply {
+                like = Like.DISLIKE_WAIT
+                binding.invalidateAll()
+                Network.dislikePost(id)
+                like = Like.DISLIKE
+                likeCount--
+            }
+        } catch (e: Network.NotLoggedInException) {
+            binding.root.context.needLogin()
+            binding.post?.apply { like = old ?: Like.NORMAL }
+        } catch (e: Exception) {
+            info.value = "网络错误"
+            binding.post?.apply { like = old ?: Like.NORMAL }
+        } finally {
+            binding.invalidateAll()
         }
     }
 
@@ -387,6 +489,28 @@ class ReplyListViewModel : ViewModel() {
         try {
             Network.report(postId)
             info.value = "举报成功"
+        } catch (e: Network.NotLoggedInException) {
+            context.needLogin()
+        } catch (e: Exception) {
+            info.value = "网络错误"
+        }
+    }
+
+    fun report(context: Context, reply: Reply) = viewModelScope.launch {
+        try {
+            Network.reportReply(postId, reply.id)
+            info.value = "举报成功"
+        } catch (e: Network.NotLoggedInException) {
+            context.needLogin()
+        } catch (e: Exception) {
+            info.value = "网络错误"
+        }
+    }
+
+    fun tag(context: Context, tag: Post.Tag) = viewModelScope.launch {
+        try {
+            Network.tag(postId, tag)
+            info.value = "已建议标记为 ${tag.display}"
         } catch (e: Network.NotLoggedInException) {
             context.needLogin()
         } catch (e: Exception) {

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/no"
+        android:title="无需标签" />
+    <item
+        android:id="@+id/sex"
+        android:title="性相关" />
+    <item
+        android:id="@+id/politics"
+        android:title="政治相关" />
+    <item
+        android:id="@+id/fake"
+        android:title="未经证实" />
+    <item
+        android:id="@+id/battle"
+        android:title="引战" />
+    <item
+        android:id="@+id/uncomfortable"
+        android:title="令人不适" />
+</menu>

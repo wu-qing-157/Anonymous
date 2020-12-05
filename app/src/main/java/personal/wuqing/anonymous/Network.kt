@@ -68,8 +68,16 @@ object Network {
         getData(op = "8_3", p1 = id) { true }
     }
 
-    suspend fun unlikePost(id: String) = withContext(Dispatchers.IO) {
+    suspend fun cancelLikePost(id: String) = withContext(Dispatchers.IO) {
         getData(op = "8_4", p1 = id) { true }
+    }
+
+    suspend fun dislikePost(id: String) = withContext(Dispatchers.IO) {
+        getData(op = "9", p1 = id) { true }
+    }
+
+    suspend fun cancelDislikePost(id: String) = withContext(Dispatchers.IO) {
+        getData(op = "9_2", p1 = id) { true }
     }
 
     suspend fun favorPost(id: String) = withContext(Dispatchers.IO) {
@@ -126,8 +134,16 @@ object Network {
         getData(op = "8", p1 = post, p4 = reply) { true }
     }
 
-    suspend fun unlikeReply(post: String, reply: String) = withContext(Dispatchers.IO) {
+    suspend fun cancelLikeReply(post: String, reply: String) = withContext(Dispatchers.IO) {
         getData(op = "8_2", p1 = post, p4 = reply) { true }
+    }
+
+    suspend fun dislikeReply(post: String, reply: String) = withContext(Dispatchers.IO) {
+        true // TODO()
+    }
+
+    suspend fun cancelDislikeReply(post: String, reply: String) = withContext(Dispatchers.IO) {
+        true // TODO()
     }
 
     suspend fun reply(post: String, reply: String, content: String) = withContext(Dispatchers.IO) {
@@ -137,6 +153,7 @@ object Network {
     suspend fun post(
         title: String,
         category: Post.Category,
+        tag: Post.Tag?,
         content: String,
         anonymousType: NameTheme,
         random: Boolean
@@ -153,5 +170,13 @@ object Network {
 
     suspend fun report(id: String) = withContext(Dispatchers.IO) {
         getData(op = "e", p1 = id) { true }
+    }
+
+    suspend fun reportReply(post: String, reply: String) = withContext(Dispatchers.IO) {
+        true // TODO()
+    }
+
+    suspend fun tag(id: String, tag: Post.Tag) = withContext(Dispatchers.IO) {
+        true // TODO()
     }
 }

@@ -115,7 +115,13 @@ class MainActivity : AppCompatActivity() {
         }
         val adapter = PostAdapter(
             postInit = {
-                root.setOnClickListener { openDetail(this) }
+                root.setOnClickListener {
+                    if (expanded.visibility != View.VISIBLE) {
+                        binding.recycle.adapter?.notifyItemChanged(
+                            it.tag as Int, post!!.copy(expanded = true)
+                        )
+                    } else openDetail(this)
+                }
             },
             filterInit = {
                 category.setOnClickListener { showFilter(category) }
@@ -223,7 +229,7 @@ class MainActivity : AppCompatActivity() {
         if (resultCode == RESULT_OK) (data?.getSerializableExtra("post") as? Post)?.apply {
             data.getIntExtra("position", 0).takeIf { it > 0 }?.let {
                 binding.recycle.adapter?.notifyItemChanged(
-                    it, copy(showInDetail = false, like = null)
+                    it, copy(showInDetail = false, expanded = true, like = Like.LIKE_WAIT)
                 )
             }
         }

@@ -303,16 +303,8 @@ class PostDetailActivity : AppCompatActivity() {
                 show()
             }
         }
-        R.id.report -> true.also {
-            MaterialAlertDialogBuilder(this).apply {
-                setTitle("举报 #${model.postId}")
-                setMessage("确定要举报吗？\n帖子被举报 10 次后将被屏蔽，我们一起共同维护无可奉告论坛环境。")
-                setPositiveButton("! 确认举报 !") { _, _ -> model.report(this@PostDetailActivity) }
-                setNegativeButton("> 手滑了 <", null)
-                setCancelable(true)
-                show()
-            }
-        }
+        R.id.report -> true.also { showReport(model.postId) { model.report(this) } }
+        R.id.tag -> true.also { showTag(model.postId) { model.tag(this, it) } }
         else -> false
     }
 

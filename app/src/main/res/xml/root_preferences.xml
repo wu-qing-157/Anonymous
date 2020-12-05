@@ -1,22 +1,55 @@
-<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto">
+<PreferenceScreen xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <PreferenceCategory
+        app:summary="已加载内容需刷新后生效"
+        app:title="标签过滤">
+        <ListPreference
+            app:dialogTitle="是否折叠 性相关 帖子"
+            app:entries="@array/fold_summary"
+            app:entryValues="@array/fold_entry"
+            app:key="fold_sex"
+            app:title="性相关"
+            app:useSimpleSummaryProvider="true" />
+        <ListPreference
+            app:dialogTitle="是否折叠 政治相关 帖子"
+            app:entries="@array/fold_summary"
+            app:entryValues="@array/fold_entry"
+            app:key="fold_politics"
+            app:title="政治相关"
+            app:useSimpleSummaryProvider="true" />
+        <ListPreference
+            app:dialogTitle="是否折叠 未经证实 帖子"
+            app:entries="@array/fold_summary"
+            app:entryValues="@array/fold_entry"
+            app:key="fold_fake"
+            app:title="未经证实"
+            app:useSimpleSummaryProvider="true" />
+        <ListPreference
+            app:dialogTitle="是否折叠 引战 帖子"
+            app:entries="@array/fold_summary"
+            app:entryValues="@array/fold_entry"
+            app:key="fold_battle"
+            app:title="引战"
+            app:useSimpleSummaryProvider="true" />
+        <ListPreference
+            app:dialogTitle="是否折叠 令人不适 帖子"
+            app:entries="@array/fold_summary"
+            app:entryValues="@array/fold_entry"
+            app:key="fold_uncomfortable"
+            app:title="令人不适"
+            app:useSimpleSummaryProvider="true" />
+    </PreferenceCategory>
 
     <PreferenceCategory app:title="关于">
-        <Preference app:title="無可奉告开源项目">
-            <intent
-                android:action="android.intent.action.VIEW"
-                android:data="https://github.com/wu-qing-157/Anonymous" />
-        </Preference>
-        <Preference app:title="无可奉告官网">
-            <intent
-                android:action="android.intent.action.VIEW"
-                android:data="http://wukefenggao.cn" />
-        </Preference>
-        <Preference app:title="社区规范">
-            <intent
-                android:action="android.intent.action.VIEW"
-                android:data="http://wukefenggao.cn/code" />
-        </Preference>
+        <Preference
+            app:key="net"
+            app:title="无可奉告官网" />
+        <Preference
+            app:key="android"
+            app:title="无可奉告 Android 项目" />
+        <Preference
+            app:key="rule"
+            app:title="社区规范" />
         <Preference
             app:key="zen"
             app:title="无可奉告之禅" />

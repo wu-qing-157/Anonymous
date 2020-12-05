@@ -6,6 +6,10 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
+import android.graphics.Canvas
+import android.graphics.Paint
+import android.graphics.RectF
+import android.graphics.Typeface
 import android.net.Uri
 import android.text.Spannable
 import android.text.SpannableString
@@ -13,6 +17,7 @@ import android.text.Spanned
 import android.text.method.ArrowKeyMovementMethod
 import android.text.method.BaseMovementMethod
 import android.text.style.ClickableSpan
+import android.text.style.ReplacementSpan
 import android.transition.Slide
 import android.util.Patterns
 import android.util.TypedValue
@@ -35,6 +40,37 @@ import kotlin.time.*
 
 enum class BottomStatus {
     REFRESHING, NO_MORE, NETWORK_ERROR, IDLE
+}
+
+enum class Like {
+    DISLIKE, DISLIKE_WAIT, NORMAL, LIKE_WAIT, LIKE
+}
+
+class TagSpan(private val background: Int, private val foreground: Int) : ReplacementSpan() {
+    companion object {
+        const val padding = 12F
+    }
+
+    override fun getSize(
+        paint: Paint, text: CharSequence?, start: Int, end: Int, fm: Paint.FontMetricsInt?
+    ) = (padding * 5 + paint.apply {
+        textSize -= 2
+        typeface = Typeface.DEFAULT_BOLD
+    }.measureText(text?.subSequence(start, end).toString())).toInt()
+
+    override fun draw(
+        canvas: Canvas, text: CharSequence?, start: Int, end: Int,
+        x: Float, top: Int, y: Int, bottom: Int, paint: Paint
+    ) {
+        val width = paint.measureText(text!!.subSequence(start, end).toString())
+        val rect = RectF(x, top.toFloat(), x + width + padding * 4, bottom.toFloat())
+        paint.color = background
+        canvas.drawRoundRect(
+            rect, (bottom - top).toFloat() / 2, (bottom - top).toFloat() / 2, paint
+        )
+        paint.color = foreground
+        canvas.drawText(text, start, end, x + padding * 2, y.toFloat(), paint)
+    }
 }
 
 fun View.pair(): android.util.Pair<View, String> = android.util.Pair.create(this, transitionName)
@@ -188,18 +224,19 @@ fun SpannableString.links(activity: Activity): List<Pair<String, () -> Unit>> {
 }
 
 @ExperimentalTime
-fun Duration.display() = when {
-    this < 1.hours -> "${inMinutes.toInt()}分钟前"
-    this < 1.days -> "${inHours.toInt()}小时前"
-    this < 30.days -> "${inDays.toInt()}天前"
-    this < 365.days -> "${inDays.toInt() / 30}个月前"
-    else -> "${inDays.toInt() / 365}年前"
-}
-
-@ExperimentalTime
-fun String.untilNow() = Calendar.getInstance().let {
+fun String.display(): String = Calendar.getInstance().let {
     it.time = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).parse(this)!!
-    (System.currentTimeMillis() - it.timeInMillis).milliseconds
+    (System.currentTimeMillis() - it.timeInMillis).milliseconds.run {
+        when {
+            this < 1.minutes -> "刚刚"
+            this < 1.hours -> "${inMinutes.toInt()}分钟前"
+            this < 1.days -> "${inHours.toInt()}小时前"
+            this < 2.days -> "昨天"
+            this < 30.days -> "${inDays.toInt()}天前"
+            this < 6 * 4 * 7.days -> SimpleDateFormat("MM月dd日", Locale.getDefault()).format(it.time)
+            else -> SimpleDateFormat("yyyy年MM月dd日", Locale.getDefault()).format(it.time)
+        }
+    }
 }
 
 class RandomN(var seed: Long) {
@@ -359,5 +396,5 @@ val names = mapOf(
 )
 
 val colors = listOf("5ebd3e", "ffb900", "f78200", "e23838", "973999", "009cdf").map {
-    "#aa$it".toColorInt()
+    "#d0$it".toColorInt()
 }

@@ -1,12 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Reply Preference -->
-    <string-array name="reply_entries">
-        <item>Reply</item>
-        <item>Reply to all</item>
+    <string-array name="fold_summary">
+        <item>折叠</item>
+        <item>隐藏</item>
+        <item>直接显示</item>
     </string-array>
-
-    <string-array name="reply_values">
-        <item>reply</item>
-        <item>reply_all</item>
+    <string-array name="fold_entry">
+        <item>fold</item>
+        <item>hide</item>
+        <item>show</item>
     </string-array>
 </resources>

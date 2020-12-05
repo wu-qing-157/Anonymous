@@ -28,7 +28,7 @@ class NewPostModel : ViewModel() {
     val info = MutableLiveData("")
 
     fun send(
-        title: String, category: Post.Category?, content: String,
+        title: String, category: Post.Category?, noTag: Boolean, tag: Post.Tag?, content: String,
         theme: NameTheme?, random: Boolean, context: Context
     ) = viewModelScope.launch {
         delay(300)
@@ -37,10 +37,11 @@ class NewPostModel : ViewModel() {
             content.isBlank() -> info.value = "请输入内容"
             category == null -> info.value = "请选择类别"
             theme == null -> info.value = "请选择匿名主题"
+            noTag -> info.value = "请选择标签"
             else -> try {
                 sending.value = true
                 delay(300)
-                Network.post(title, category, content, theme, random)
+                Network.post(title, category, tag, content, theme, random)
                 success.value = true
             } catch (e: Network.NotLoggedInException) {
                 context.needLogin()
@@ -73,6 +74,14 @@ class NewPostActivity : AppCompatActivity() {
             R.id.us_president to NameTheme.US_PRESIDENT,
             R.id.tarot to NameTheme.TAROT,
         )
+        val tagMap = mapOf(
+            R.id.sex to Post.Tag.SEX,
+            R.id.politics to Post.Tag.POLITICS,
+            R.id.fake to Post.Tag.FAKE,
+            R.id.battle to Post.Tag.BATTLE,
+            R.id.uncomfortable to Post.Tag.UNCOMFORTABLE,
+            R.id.no to null
+        )
     }
 
     private fun showCategory(button: MaterialButton) {
@@ -103,6 +112,20 @@ class NewPostActivity : AppCompatActivity() {
         }
     }
 
+    private fun showTag(button: MaterialButton) {
+        PopupMenu(this, button, Gravity.NO_GRAVITY, R.attr.popupMenuStyle, 0).apply {
+            MenuCompat.setGroupDividerEnabled(menu, true)
+            menuInflater.inflate(R.menu.tags, menu)
+            setOnMenuItemClickListener {
+                binding.tag.text = it.title
+                binding.tag.tag = tagMap[it.itemId]
+                dismiss()
+                true
+            }
+            show()
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         postponeEnterTransition()
@@ -110,8 +133,11 @@ class NewPostActivity : AppCompatActivity() {
         binding =
             DataBindingUtil.setContentView<ActivityNewBinding>(this, R.layout.activity_new).apply {
                 theme.tag = NameTheme.ALICE_AND_BOB
+                tag.tag = Unit
                 category.setOnClickListener { showCategory(category) }
                 categoryRow.setOnClickListener { showCategory(category) }
+                tag.setOnClickListener { showTag(tag) }
+                tagRow.setOnClickListener { showTag(tag) }
                 theme.setOnClickListener { showTheme(theme) }
                 themeRow.setOnClickListener { showTheme(theme) }
                 shuffleRow.setOnClickListener { shuffle.isChecked = !shuffle.isChecked }
@@ -167,6 +193,8 @@ class NewPostActivity : AppCompatActivity() {
             model.send(
                 title = title.text.toString(),
                 category = category.tag as? Post.Category,
+                noTag = tag.tag == Unit,
+                tag = tag.tag as? Post.Tag,
                 content = content.text.toString(),
                 theme = theme.tag as? NameTheme,
                 random = shuffle.isChecked,

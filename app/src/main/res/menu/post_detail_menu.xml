@@ -17,4 +17,9 @@
         android:id="@+id/report"
         android:title="举报"
         app:showAsAction="never" />
+
+    <item
+        android:id="@+id/tag"
+        android:title="标记"
+        app:showAsAction="never" />
 </menu>
