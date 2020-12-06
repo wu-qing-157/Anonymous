@@ -102,6 +102,7 @@ class LoginViewModel : ViewModel() {
 
 class LoginActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
+        applyTheme()
         val prefs = getSharedPreferences("login", MODE_PRIVATE)
         if ("uuid" !in prefs) with(prefs.edit()) {
             putString("uuid", UUID.randomUUID().toString())

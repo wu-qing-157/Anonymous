@@ -16,7 +16,7 @@
             android:layout_gravity="end"
             android:layout_marginHorizontal="16dp"
             android:minWidth="0dp"
-            android:text="顺序"
+            android:text="最早回复"
             android:textAlignment="textEnd"
             android:textColor="?android:attr/textColorSecondary"
             app:icon="@drawable/ic_sort"

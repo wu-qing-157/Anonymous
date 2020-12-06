@@ -13,9 +13,11 @@ import android.view.animation.DecelerateInterpolator
 import android.view.inputmethod.InputMethodManager
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.widget.PopupMenu
 import androidx.coordinatorlayout.widget.CoordinatorLayout
 import androidx.core.app.ShareCompat
 import androidx.core.app.SharedElementCallback
+import androidx.core.view.MenuCompat
 import androidx.core.widget.addTextChangedListener
 import androidx.databinding.DataBindingUtil
 import androidx.lifecycle.viewModelScope
@@ -23,6 +25,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.SimpleItemAnimator
 import com.google.android.material.behavior.HideBottomViewOnScrollBehavior
+import com.google.android.material.button.MaterialButton
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
 import kotlinx.coroutines.delay
@@ -35,6 +38,31 @@ import kotlin.time.ExperimentalTime
 class PostDetailActivity : AppCompatActivity() {
     lateinit var binding: ActivityPostBinding
     val model by viewModels<ReplyListViewModel>()
+
+    companion object {
+        val sortMap = mapOf(
+            R.id.earliest to Network.ReplySort.EARLIEST,
+            R.id.newest to Network.ReplySort.NEWEST,
+            R.id.host to Network.ReplySort.HOST,
+            R.id.hot to Network.ReplySort.HOT,
+        )
+    }
+
+    @ExperimentalTime
+    private fun showFilter(button: MaterialButton) {
+        PopupMenu(this, button, Gravity.NO_GRAVITY, R.attr.popupMenuStyle, 0).apply {
+            MenuCompat.setGroupDividerEnabled(menu, true)
+            menuInflater.inflate(R.menu.reply_sort, menu)
+            setOnMenuItemClickListener {
+                button.text = it.title
+                model.sort = sortMap[it.itemId] ?: error("")
+                dismiss()
+                model.refresh(this@PostDetailActivity)
+                true
+            }
+            show()
+        }
+    }
 
     private fun jump(to: Int) = model.viewModelScope.launch {
         val target =
@@ -103,6 +131,7 @@ class PostDetailActivity : AppCompatActivity() {
 
     @ExperimentalTime
     override fun onCreate(savedInstanceState: Bundle?) {
+        applyTheme()
         super.onCreate(savedInstanceState)
         val context = this
         loadToken()
@@ -128,13 +157,7 @@ class PostDetailActivity : AppCompatActivity() {
                 likeButton.setOnClickListener { model.like(this) }
             },
             sortInit = {
-                model.order.observe(context) {
-                    sort.text = if (it) "逆序" else "顺序"
-                }
-                sort.setOnClickListener {
-                    model.order.value = !model.order.value!!
-                    model.refresh(context)
-                }
+                sort.setOnClickListener { showFilter(sort) }
             },
             postInit = {
                 post = model.post.value!!
@@ -230,9 +253,6 @@ class PostDetailActivity : AppCompatActivity() {
                 binding.reply.setText("")
             }
         }
-        model.order.observe(context) {
-            if (adapter.currentList.size > 1) adapter.notifyItemChanged(1)
-        }
 
         model.more(context)
         window.enterTransition = Slide(Gravity.END).apply {
@@ -279,8 +299,17 @@ class PostDetailActivity : AppCompatActivity() {
                 title = if (it == true) "取消收藏" else "收藏"
             }
         }
+        binding.recycle.addOnScrollListener(object : RecyclerView.OnScrollListener() {
+            override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
+                menu.findItem(R.id.refresh).isVisible =
+                    with(recyclerView.layoutManager as LinearLayoutManager) {
+                        findFirstCompletelyVisibleItemPosition() > 0
+                    }
+            }
+        })
     }
 
+    @ExperimentalTime
     override fun onOptionsItemSelected(item: MenuItem) = when (item.itemId) {
         R.id.favor -> true.also { model.favor(this) }
         R.id.share -> true.also {
@@ -301,6 +330,13 @@ class PostDetailActivity : AppCompatActivity() {
                     }
                 }
                 show()
+            }
+        }
+        R.id.refresh -> true.also {
+            binding.recycle.smoothScrollToPosition(0)
+            model.viewModelScope.launch {
+                delay(500)
+                model.refresh(this@PostDetailActivity)
             }
         }
         R.id.report -> true.also { showReport(model.postId) { model.report(this) } }

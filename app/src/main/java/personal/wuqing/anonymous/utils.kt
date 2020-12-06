@@ -30,6 +30,7 @@ import android.widget.TextView
 import androidx.browser.customtabs.CustomTabsIntent
 import androidx.core.graphics.toColorInt
 import androidx.core.text.getSpans
+import androidx.preference.PreferenceManager
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
 import com.google.android.material.textview.MaterialTextView
@@ -46,7 +47,28 @@ enum class Like {
     DISLIKE, DISLIKE_WAIT, NORMAL, LIKE_WAIT, LIKE
 }
 
-class TagSpan(private val background: Int, private val foreground: Int) : ReplacementSpan() {
+val themes = mapOf(
+    "default" to R.style.OverlayColorDefault,
+    "purple" to R.style.OverlayColorPurple,
+    "green" to R.style.OverlayColorGreen,
+    "red" to R.style.OverlayColorRed,
+    "orange" to R.style.OverlayColorOrange,
+    "brown" to R.style.OverlayColorBrown,
+//    "white" to R.style.OverlayColorWhite,
+)
+
+fun Context.applyTheme() {
+    theme.applyStyle(
+        themes[PreferenceManager.getDefaultSharedPreferences(this).getString("color", "default")]
+            ?: R.style.OverlayColorDefault,
+        true
+    )
+}
+
+class TagSpan(
+    private val background: Int, private val foreground: Int,
+    private val bold: Boolean = true,
+) : ReplacementSpan() {
     companion object {
         const val padding = 12F
     }
@@ -55,7 +77,7 @@ class TagSpan(private val background: Int, private val foreground: Int) : Replac
         paint: Paint, text: CharSequence?, start: Int, end: Int, fm: Paint.FontMetricsInt?
     ) = (padding * 5 + paint.apply {
         textSize -= 2
-        typeface = Typeface.DEFAULT_BOLD
+        if (bold) typeface = Typeface.DEFAULT_BOLD
     }.measureText(text?.subSequence(start, end).toString())).toInt()
 
     override fun draw(

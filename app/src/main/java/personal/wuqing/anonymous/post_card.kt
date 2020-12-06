@@ -61,12 +61,12 @@ data class Post constructor(
     val colorG: ColorG,
     val nameG: NameG,
 ) : PostListElem(), Serializable {
-    enum class Tag(val display: String, val pref_name: String) {
-        SEX("性相关", "fold_sex"),
-        POLITICS("政治相关", "fold_politics"),
-        FAKE("未经证实", "fold_fake"),
-        BATTLE("引战", "fold_battle"),
-        UNCOMFORTABLE("令人不适", "fold_uncomfortable"),
+    enum class Tag(val display: String, val prefName: String, val backend: String) {
+        SEX("性相关", "fold_sex", "sex"),
+        POLITICS("政治相关", "fold_politics", "politics"),
+        FAKE("未经证实", "fold_fake", "unproved"),
+        BATTLE("引战", "fold_battle", "war"),
+        UNCOMFORTABLE("令人不适", "fold_uncomfortable", "uncomfort"),
     }
 
     @ExperimentalTime
@@ -74,7 +74,7 @@ data class Post constructor(
         expanded = false,
         top = json.optInt("WhetherTop", 0) == 1,
         showInDetail = showInDetail,
-        tag = (Tag.values().toList() + null).random(),
+        tag = Tag.values().firstOrNull { it.backend == json.getString("Tag") },
         id = json.getString("ThreadID"),
         update = json.getString("LastUpdateTime").display(),
         post = json.getString("PostTime").display(),
@@ -215,10 +215,9 @@ class PostAdapter(
             private val binding: PostCardBinding,
             private val init: PostCardBinding.() -> Unit
         ) : ViewHolder(binding.root) {
-            fun bind(item: Post, position: Int) {
+            fun bind(item: Post) {
                 binding.apply {
                     post = item
-                    root.tag = position
                     init()
                     executePendingBindings()
                 }
@@ -265,7 +264,7 @@ class PostAdapter(
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         when (holder) {
-            is ViewHolder.PostCard -> holder.bind(getItem(position) as Post, position)
+            is ViewHolder.PostCard -> holder.bind(getItem(position) as Post)
             is ViewHolder.Filter -> Unit
             is ViewHolder.Bottom -> Unit
         }
@@ -273,7 +272,7 @@ class PostAdapter(
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int, payloads: MutableList<Any>) {
         if (holder is ViewHolder.PostCard && payloads.singleOrNull() is Post)
-            holder.bind(payloads.single() as Post, position)
+            holder.bind(payloads.single() as Post)
         else super.onBindViewHolder(holder, position, payloads)
     }
 
@@ -300,7 +299,7 @@ fun CardView.magic(post: Post) {
     val context = context
     val folded = !post.showInDetail && !post.expanded && post.tag?.let {
         PreferenceManager.getDefaultSharedPreferences(context)
-            .getString(post.tag.pref_name, "fold") == "fold"
+            .getString(post.tag.prefName, "fold") == "fold"
     } ?: false
     binding.expanded.visibility = if (folded) View.GONE else View.VISIBLE
     binding.folded.visibility = if (folded) View.VISIBLE else View.GONE
@@ -380,7 +379,7 @@ fun CardView.magic(post: Post) {
                         0 -> this@magic.performClick()
                         1 -> {
                             with(PreferenceManager.getDefaultSharedPreferences(context).edit()) {
-                                putString(post.tag.pref_name, "hide")
+                                putString(post.tag.prefName, "hide")
                                 commit()
                             }
                             (context as? MainActivity)?.apply {
@@ -416,6 +415,10 @@ fun CardView.magic(post: Post) {
         isFocusable = false
         rippleColor = ColorStateList.valueOf(0xffffff)
     }
+    binding.title.requestLayout()
+    binding.title.invalidate()
+    binding.content.requestLayout()
+    binding.content.invalidate()
 }
 
 class PostListViewModel : ViewModel() {
@@ -435,7 +438,7 @@ class PostListViewModel : ViewModel() {
         EMOTION(Post.Category.EMOTION, Network.PostType.TIME),
         SOCIAL(Post.Category.SOCIAL, Network.PostType.TIME),
         MY(Post.Category.ALL, Network.PostType.MY),
-        REPLY(Post.Category.ALL, Network.PostType.MY),
+        UNREAD(Post.Category.ALL, Network.PostType.MESSAGE),
         FAVOUR(Post.Category.ALL, Network.PostType.FAVOURED)
     }
 
@@ -463,7 +466,7 @@ class PostListViewModel : ViewModel() {
                     if (new.isEmpty()) break
                     tot.addAll(new.filter {
                         (it.tag == null || PreferenceManager.getDefaultSharedPreferences(context)
-                            .getString(it.tag.pref_name, "fold") != "hide") &&
+                            .getString(it.tag.prefName, "fold") != "hide") &&
                                 !context.getSharedPreferences("blocked", Context.MODE_PRIVATE)
                                     .getBoolean(it.id, false)
                     })
@@ -471,9 +474,11 @@ class PostListViewModel : ViewModel() {
                 list.value = tot
                 delay(100)
                 bottom.value =
-                    if (list.value.isNullOrEmpty()) BottomStatus.NO_MORE else BottomStatus.IDLE
+                    if (tot.size < 8) BottomStatus.NO_MORE else BottomStatus.IDLE
             } catch (e: Network.NotLoggedInException) {
                 context.needLogin()
+            } catch (e: Network.BannedException) {
+                e.showLogout(context)
             } catch (e: CancellationException) {
                 refresh.value = false
             } catch (e: Exception) {
@@ -503,7 +508,7 @@ class PostListViewModel : ViewModel() {
                     if (new.isEmpty()) break
                     val newFiltered = new.filter {
                         (it.tag == null || PreferenceManager.getDefaultSharedPreferences(context)
-                            .getString(it.tag.pref_name, "fold") != "hide") &&
+                            .getString(it.tag.prefName, "fold") != "hide") &&
                                 !context.getSharedPreferences("blocked", Context.MODE_PRIVATE)
                                     .getBoolean(it.id, false)
                     }
@@ -511,9 +516,11 @@ class PostListViewModel : ViewModel() {
                     newCount += newFiltered.size
                 }
                 delay(100)
-                bottom.value = if (newCount == 0) BottomStatus.NO_MORE else BottomStatus.IDLE
+                bottom.value = if (newCount < 8) BottomStatus.NO_MORE else BottomStatus.IDLE
             } catch (e: Network.NotLoggedInException) {
                 context.needLogin()
+            } catch (e: Network.BannedException) {
+                e.showLogout(context)
             } catch (e: CancellationException) {
                 bottom.value = BottomStatus.IDLE
             } catch (e: Exception) {
@@ -531,6 +538,8 @@ class PostListViewModel : ViewModel() {
             info.value = "举报成功"
         } catch (e: Network.NotLoggedInException) {
             context.needLogin()
+        } catch (e: Network.BannedException) {
+            e.showLogout(context)
         } catch (e: Exception) {
             info.value = "网络错误"
         }
@@ -542,6 +551,8 @@ class PostListViewModel : ViewModel() {
             info.value = "已建议标记为 ${tag.display}"
         } catch (e: Network.NotLoggedInException) {
             context.needLogin()
+        } catch (e: Network.BannedException) {
+            e.showLogout(context)
         } catch (e: Exception) {
             info.value = "网络错误"
         }

@@ -1,17 +1,13 @@
 <resources>
     <!-- Base application theme. -->
     <style name="Theme.Anonymous" parent="Theme.MaterialComponents.DayNight.DarkActionBar">
-        <!-- Primary brand color. -->
         <item name="colorPrimary">#299ee3</item>
-        <item name="colorPrimaryVariant">@color/purple_700</item>
+        <item name="colorPrimaryVariant">#0070b1</item>
         <item name="colorOnPrimary">@color/white</item>
-        <!-- Secondary brand color. -->
         <item name="colorSecondary">@color/teal_200</item>
         <item name="colorSecondaryVariant">@color/teal_700</item>
         <item name="colorOnSecondary">@color/black</item>
-        <!-- Status bar color. -->
-        <item name="android:statusBarColor">?attr/colorPrimary</item>
-        <!-- Customize your theme here. -->
+        <item name="android:statusBarColor">@color/white</item>
         <item name="android:windowActivityTransitions">true</item>
     </style>
 
@@ -29,8 +25,73 @@
         <item name="overlapAnchor">true</item>
     </style>
 
-    <style name="Theme.Anonymous.Chip.Tag" parent="Widget.MaterialComponents.Chip.Choice">
-        <item name="android:textSize">12sp</item>
-        <item name="android:textStyle">bold</item>
+    <style name="OverlayColorDefault">
+        <item name="colorPrimary">#299ee3</item>
+        <item name="colorPrimaryVariant">#0070b1</item>
+        <item name="colorOnPrimary">@color/white</item>
+        <item name="colorSecondary">@color/teal_200</item>
+        <item name="colorSecondaryVariant">@color/teal_700</item>
+        <item name="colorOnSecondary">@color/black</item>
+        <item name="android:statusBarColor">?attr/colorPrimary</item>
+    </style>
+
+    <style name="OverlayColorPurple">
+        <item name="colorPrimary">#5c6bc0</item>
+        <item name="colorPrimaryVariant">#26418f</item>
+        <item name="colorOnPrimary">@color/white</item>
+        <item name="colorSecondary">#dda5ad</item>
+        <item name="colorSecondaryVariant">#aa767e</item>
+        <item name="colorOnSecondary">@color/black</item>
+        <item name="android:statusBarColor">?attr/colorPrimary</item>
+    </style>
+
+    <style name="OverlayColorGreen">
+        <item name="colorPrimary">#4db6ac</item>
+        <item name="colorPrimaryVariant">#00867d</item>
+        <item name="colorOnPrimary">@color/white</item>
+        <item name="colorSecondary">#e27866</item>
+        <item name="colorSecondaryVariant">#ac4a3b</item>
+        <item name="colorOnSecondary">@color/black</item>
+        <item name="android:statusBarColor">?attr/colorPrimary</item>
+    </style>
+
+    <style name="OverlayColorRed">
+        <item name="colorPrimary">#f44336</item>
+        <item name="colorPrimaryVariant">#ba000d</item>
+        <item name="colorOnPrimary">@color/white</item>
+        <item name="colorSecondary">#db615b</item>
+        <item name="colorSecondaryVariant">#a53131</item>
+        <item name="colorOnSecondary">@color/black</item>
+        <item name="android:statusBarColor">?attr/colorPrimary</item>
+    </style>
+
+    <style name="OverlayColorOrange">
+        <item name="colorPrimary">#ff9800</item>
+        <item name="colorPrimaryVariant">#c66900</item>
+        <item name="colorOnPrimary">@color/white</item>
+        <item name="colorSecondary">#db7d98</item>
+        <item name="colorSecondaryVariant">#a74e6a</item>
+        <item name="colorOnSecondary">@color/black</item>
+        <item name="android:statusBarColor">?attr/colorPrimary</item>
+    </style>
+
+    <style name="OverlayColorBrown">
+        <item name="colorPrimary">#8d6e63</item>
+        <item name="colorPrimaryVariant">#5f4339</item>
+        <item name="colorOnPrimary">@color/white</item>
+        <item name="colorSecondary">#3b4b77</item>
+        <item name="colorSecondaryVariant">#0a244b</item>
+        <item name="colorOnSecondary">@color/white</item>
+        <item name="android:statusBarColor">?attr/colorPrimary</item>
+    </style>
+
+    <style name="OverlayColorWhite">
+        <item name="colorPrimary">#ffffff</item>
+        <item name="colorPrimaryVariant">#ffffff</item>
+        <item name="colorOnPrimary">@color/black</item>
+        <item name="colorSecondary">#009688</item>
+        <item name="colorSecondaryVariant">#00675b</item>
+        <item name="colorOnSecondary">@color/black</item>
+        <item name="android:statusBarColor">?attr/colorPrimary</item>
     </style>
 </resources>

@@ -36,11 +36,10 @@
             android:id="@+id/my"
             android:title="我的发帖" />
         <item
-            android:id="@+id/my_reply"
-            android:title="我的回复"
-            android:visible="false" />
-        <item
             android:id="@+id/my_favorite"
             android:title="我的收藏" />
+        <item
+            android:id="@+id/unread"
+            android:title="未读回复" />
     </group>
 </menu>

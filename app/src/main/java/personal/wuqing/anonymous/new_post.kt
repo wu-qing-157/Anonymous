@@ -35,6 +35,7 @@ class NewPostModel : ViewModel() {
         when {
             title.isBlank() -> info.value = "请输入标题"
             content.isBlank() -> info.value = "请输入内容"
+            content.count { it == '\n' } > 20 -> info.value = "换行不能超过20次哟"
             category == null -> info.value = "请选择类别"
             theme == null -> info.value = "请选择匿名主题"
             noTag -> info.value = "请选择标签"
@@ -127,6 +128,7 @@ class NewPostActivity : AppCompatActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        applyTheme()
         super.onCreate(savedInstanceState)
         postponeEnterTransition()
         loadToken()
@@ -150,10 +152,9 @@ class NewPostActivity : AppCompatActivity() {
             binding.progress.visibility = if (it) View.VISIBLE else View.GONE
             binding.apply {
                 listOf(
-                    category, categoryRow, theme, themeRow, shuffle, shuffleRow, title, content
-                ).forEach { view ->
-                    view.isEnabled = !it
-                }
+                    category, categoryRow, tag, tagRow, theme, themeRow, shuffle, shuffleRow,
+                    title, content,
+                ).forEach { view -> view.isEnabled = !it }
             }
         }
         model.success.observe(this) {

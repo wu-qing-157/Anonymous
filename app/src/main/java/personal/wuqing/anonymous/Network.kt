@@ -1,5 +1,7 @@
 package personal.wuqing.anonymous
 
+import android.content.Context
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
@@ -9,7 +11,7 @@ import kotlin.random.Random
 import kotlin.time.ExperimentalTime
 
 object Network {
-    private const val IP = "182.254.145.254"
+    private const val IP = "172.81.215.104"
     private const val PORT = 8080
     var token = ""
     private fun connect(data: JSONObject) = Socket().use {
@@ -22,10 +24,42 @@ object Network {
     }
 
     object NotLoggedInException : Exception()
+    class BannedException(
+        val release: String,
+        val thread: String,
+        val content: String,
+        val reason: String,
+        val isReply: Boolean,
+    ) : Exception() {
+        fun showLogout(context: Context) {
+            MaterialAlertDialogBuilder(context).apply {
+                setTitle("很抱歉，你已被封禁")
+                setMessage(
+                    """
+                    |由于${if (isReply) "你在 #$thread 下的回复" else "你的发帖 #$thread"} $reason ，已被我们屏蔽。结合你之前在无可奉告的封禁记录，你的账号将被暂时封禁至 $release。
+                    |
+                    |违规${if (isReply) "回复" else "发帖"}内容为：
+                    |
+                    |$content
+                    |
+                    |请与我们一起维护无可奉告社区环境。
+                    |谢谢！
+                """.trimMargin()
+                )
+                setCancelable(false)
+                setPositiveButton("知道了") { _, _ ->
+                    context.clearToken()
+                    context.needLogin()
+                }
+                show()
+            }
+        }
+    }
 
     private fun <T> getData(
         op: String, checkLogin: Boolean = true,
-        p1: String = "0", p2: String = "0", p3: String = "0", p4: String = "0", p5: String = "0",
+        p1: String = "0", p2: String = "0", p3: String = "0",
+        p4: String = "0", p5: String = "0", p6: String = "0",
         done: JSONObject.() -> T
     ): T {
         val json = JSONObject(
@@ -36,12 +70,24 @@ object Network {
                 "pa_3" to p3,
                 "pa_4" to p4,
                 "pa_5" to p5,
+                "pa_6" to p6,
                 "Token" to token
             )
         )
         val result = connect(json)
-        return if (checkLogin && result.has("login_flag") && result.getString("login_flag") != "1") throw NotLoggedInException
-        else done(result)
+        return when {
+            checkLogin && result.optString("login_flag", "") == "-1" ->
+                throw BannedException(
+                    release = result.getString("ReleaseTime"),
+                    thread = result.getString("Ban_ThreadID"),
+                    content = result.getString("Ban_Content"),
+                    reason = result.getString("Ban_Reason"),
+                    isReply = result.getString("Ban_Style") == "1"
+                )
+            checkLogin && result.optString("login_flag", "1") != "1" ->
+                throw NotLoggedInException
+            else -> done(result)
+        }
     }
 
     suspend fun requestLoginCode(email: String) = withContext(Dispatchers.IO) {
@@ -89,7 +135,7 @@ object Network {
     }
 
     enum class PostType(val op: String) {
-        TIME("1"), FAVOURED("6"), MY("7"), TRENDING("d")
+        TIME("1"), FAVOURED("6"), MY("7"), TRENDING("d"), MESSAGE("a"),
     }
 
     @ExperimentalTime
@@ -98,7 +144,7 @@ object Network {
             getData(op = type.op, p1 = last, p2 = category.id.toString()) {
                 var lastSeen = "NULL"
                 for (key in keys()) if (key.startsWith("LastSeen")) lastSeen = getString(key)
-                lastSeen to getJSONArray("thread_list").let {
+                lastSeen to (optJSONArray("thread_list") ?: getJSONArray("message_list")).let {
                     (0 until it.length()).map { i -> Post(it.getJSONObject(i), false) }
                 }
             }
@@ -115,10 +161,14 @@ object Network {
         }
     }
 
+    enum class ReplySort(val op: String) {
+        EARLIEST("0"), NEWEST("1"), HOST("2"), HOT("3"),
+    }
+
     @ExperimentalTime
-    suspend fun fetchReply(postId: String, order: Boolean, last: String = "NULL") =
+    suspend fun fetchReply(postId: String, order: ReplySort, last: String = "NULL") =
         withContext(Dispatchers.IO) {
-            getData(op = "2", p1 = postId, p2 = last, p3 = if (order) "1" else "0") {
+            getData(op = "2", p1 = postId, p2 = last, p3 = order.op) {
                 val post = Post(getJSONObject("this_thread"), true)
                 var newLast = "NULL"
                 for (key in keys()) if (key.startsWith("LastSeen")) newLast = getString(key)
@@ -139,11 +189,11 @@ object Network {
     }
 
     suspend fun dislikeReply(post: String, reply: String) = withContext(Dispatchers.IO) {
-        true // TODO()
+        getData(op = "8_5", p1 = post, p4 = reply) { true }
     }
 
     suspend fun cancelDislikeReply(post: String, reply: String) = withContext(Dispatchers.IO) {
-        true // TODO()
+        getData(op = "8_6", p1 = post, p4 = reply) { true }
     }
 
     suspend fun reply(post: String, reply: String, content: String) = withContext(Dispatchers.IO) {
@@ -164,7 +214,8 @@ object Network {
             p2 = category.id.toString(),
             p3 = content,
             p4 = anonymousType.id,
-            p5 = (if (random) Random.nextInt(1000000) else 0).toString()
+            p5 = (if (random) Random.nextInt(1000000) else 0).toString(),
+            p6 = tag?.backend ?: "NULL",
         ) { true }
     }
 
@@ -173,10 +224,14 @@ object Network {
     }
 
     suspend fun reportReply(post: String, reply: String) = withContext(Dispatchers.IO) {
-        true // TODO()
+        getData(op = "h", p1 = post, p2 = reply) { true }
     }
 
     suspend fun tag(id: String, tag: Post.Tag) = withContext(Dispatchers.IO) {
-        true // TODO()
+        getData(op = "i", p1 = id, p4 = tag.backend) { true }
+    }
+
+    suspend fun cancelTag(id: String) = withContext(Dispatchers.IO) {
+        getData(op = "i_2") { true }
     }
 }

@@ -5,7 +5,6 @@ import android.content.Context
 import android.content.DialogInterface
 import android.content.res.ColorStateList
 import android.text.SpannableString
-import android.util.Log
 import android.util.TypedValue
 import android.view.LayoutInflater
 import android.view.View
@@ -255,6 +254,8 @@ fun CardView.magic(reply: Reply) {
         isClickable = false
         isLongClickable = false
     }
+    binding.content.requestLayout()
+    binding.content.invalidate()
 }
 
 class ReplyListViewModel : ViewModel() {
@@ -265,7 +266,7 @@ class ReplyListViewModel : ViewModel() {
     val bottom = MutableLiveData(BottomStatus.REFRESHING)
     val sending = MutableLiveData(false)
     val success = MutableLiveData(false)
-    val order = MutableLiveData(false)
+    var sort = Network.ReplySort.EARLIEST
     val favor = MutableLiveData(false)
     var postId = ""
     private var last = "NULL"
@@ -275,7 +276,7 @@ class ReplyListViewModel : ViewModel() {
         refresh.value = true
         delay(300)
         try {
-            val (pair, newList) = Network.fetchReply(postId, order.value!!)
+            val (pair, newList) = Network.fetchReply(postId, sort)
             val (last, newPost) = pair
             this@ReplyListViewModel.last = last
             post.value = newPost
@@ -285,6 +286,8 @@ class ReplyListViewModel : ViewModel() {
                 if (list.value.isNullOrEmpty()) BottomStatus.NO_MORE else BottomStatus.IDLE
         } catch (e: Network.NotLoggedInException) {
             context.needLogin()
+        } catch (e: Network.BannedException) {
+            e.showLogout(context)
         } catch (e: CancellationException) {
             refresh.value = false
         } catch (e: Exception) {
@@ -300,7 +303,7 @@ class ReplyListViewModel : ViewModel() {
         bottom.value = BottomStatus.REFRESHING
         try {
             delay(300)
-            val (pair, newList) = Network.fetchReply(postId, order.value!!, last)
+            val (pair, newList) = Network.fetchReply(postId, sort, last)
             val (last, newPost) = pair
             this@ReplyListViewModel.last = last
             post.value = newPost
@@ -309,10 +312,12 @@ class ReplyListViewModel : ViewModel() {
             bottom.value = if (newList.isEmpty()) BottomStatus.NO_MORE else BottomStatus.IDLE
         } catch (e: Network.NotLoggedInException) {
             context.needLogin()
+        } catch (e: Network.BannedException) {
+            e.showLogout(context)
         } catch (e: CancellationException) {
             bottom.value = BottomStatus.IDLE
         } catch (e: Exception) {
-            info.value = e.stackTraceToString()
+            info.value = "网络错误"
             bottom.value = BottomStatus.NETWORK_ERROR
         }
     }
@@ -349,6 +354,8 @@ class ReplyListViewModel : ViewModel() {
         } catch (e: Network.NotLoggedInException) {
             binding.root.context.needLogin()
             binding.reply?.apply { like = old ?: Like.NORMAL }
+        } catch (e: Network.BannedException) {
+            e.showLogout(binding.root.context)
         } catch (e: Exception) {
             info.value = "网络错误"
             binding.reply?.apply { like = old ?: Like.NORMAL }
@@ -370,6 +377,8 @@ class ReplyListViewModel : ViewModel() {
         } catch (e: Network.NotLoggedInException) {
             binding.root.context.needLogin()
             binding.reply?.apply { like = old ?: Like.NORMAL }
+        } catch (e: Network.BannedException) {
+            e.showLogout(binding.root.context)
         } catch (e: Exception) {
             info.value = "网络错误"
             binding.reply?.apply { like = old ?: Like.NORMAL }
@@ -382,6 +391,9 @@ class ReplyListViewModel : ViewModel() {
         if (editText.text.toString().isBlank()) {
             info.value = "发送失败：内容为空"
             return@launch
+        } else if (editText.text.count { it == '\n' } >= 20) {
+            info.value = "发送失败：换行不能超过20次哟"
+            return@launch
         }
         sending.value = true
         delay(300)
@@ -390,8 +402,9 @@ class ReplyListViewModel : ViewModel() {
             success.value = true
         } catch (e: Network.NotLoggedInException) {
             editText.context.needLogin()
+        } catch (e: Network.BannedException) {
+            e.showLogout(editText.context)
         } catch (e: Exception) {
-            Log.e("exception", e.stackTraceToString())
             info.value = "网络错误"
         } finally {
             sending.value = false
@@ -430,6 +443,8 @@ class ReplyListViewModel : ViewModel() {
         } catch (e: Network.NotLoggedInException) {
             binding.root.context.needLogin()
             binding.post?.apply { like = old ?: Like.NORMAL }
+        } catch (e: Network.BannedException) {
+            e.showLogout(binding.root.context)
         } catch (e: Exception) {
             info.value = "网络错误"
             binding.post?.apply { like = old ?: Like.NORMAL }
@@ -451,6 +466,8 @@ class ReplyListViewModel : ViewModel() {
         } catch (e: Network.NotLoggedInException) {
             binding.root.context.needLogin()
             binding.post?.apply { like = old ?: Like.NORMAL }
+        } catch (e: Network.BannedException) {
+            e.showLogout(binding.root.context)
         } catch (e: Exception) {
             info.value = "网络错误"
             binding.post?.apply { like = old ?: Like.NORMAL }
@@ -480,6 +497,8 @@ class ReplyListViewModel : ViewModel() {
             }
         } catch (e: Network.NotLoggedInException) {
             context.needLogin()
+        } catch (e: Network.BannedException) {
+            e.showLogout(context)
         } catch (e: Exception) {
             info.value = "网络错误"
         }
@@ -491,6 +510,8 @@ class ReplyListViewModel : ViewModel() {
             info.value = "举报成功"
         } catch (e: Network.NotLoggedInException) {
             context.needLogin()
+        } catch (e: Network.BannedException) {
+            e.showLogout(context)
         } catch (e: Exception) {
             info.value = "网络错误"
         }
@@ -502,6 +523,8 @@ class ReplyListViewModel : ViewModel() {
             info.value = "举报成功"
         } catch (e: Network.NotLoggedInException) {
             context.needLogin()
+        } catch (e: Network.BannedException) {
+            e.showLogout(context)
         } catch (e: Exception) {
             info.value = "网络错误"
         }
@@ -513,6 +536,8 @@ class ReplyListViewModel : ViewModel() {
             info.value = "已建议标记为 ${tag.display}"
         } catch (e: Network.NotLoggedInException) {
             context.needLogin()
+        } catch (e: Network.BannedException) {
+            e.showLogout(context)
         } catch (e: Exception) {
             info.value = "网络错误"
         }

@@ -5,13 +5,20 @@
         android:id="@+id/favor"
         android:icon="@drawable/ic_star_border"
         android:title="收藏"
-        app:showAsAction="ifRoom" />
+        app:showAsAction="always" />
 
     <item
         android:id="@+id/share"
         android:icon="@drawable/ic_share"
         android:title="分享"
         app:showAsAction="ifRoom" />
+
+    <item
+        android:id="@+id/refresh"
+        android:icon="@drawable/ic_refresh"
+        android:title="刷新"
+        android:visible="false"
+        app:showAsAction="always" />
 
     <item
         android:id="@+id/report"

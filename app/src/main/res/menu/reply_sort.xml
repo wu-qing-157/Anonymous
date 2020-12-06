@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/earliest"
+        android:title="最早回复" />
+    <item
+        android:id="@+id/newest"
+        android:title="最新回复" />
+    <item
+        android:id="@+id/host"
+        android:title="只看洞主" />
+    <item
+        android:id="@+id/hot"
+        android:title="最高热度" />
+</menu>

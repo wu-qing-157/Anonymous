@@ -35,6 +35,7 @@ class MainActivity : AppCompatActivity() {
     companion object {
         const val NEW_POST = 1
         const val POST_DETAIL = 2
+        const val SETTINGS = 3
         val filterMap = mapOf(
             R.id.all to PostListViewModel.Category.ALL,
             R.id.hot to PostListViewModel.Category.HOT,
@@ -46,7 +47,7 @@ class MainActivity : AppCompatActivity() {
             R.id.emotion to PostListViewModel.Category.EMOTION,
             R.id.social to PostListViewModel.Category.SOCIAL,
             R.id.my to PostListViewModel.Category.MY,
-            R.id.my_reply to PostListViewModel.Category.REPLY,
+            R.id.unread to PostListViewModel.Category.UNREAD,
             R.id.my_favorite to PostListViewModel.Category.FAVOUR,
         )
     }
@@ -56,13 +57,15 @@ class MainActivity : AppCompatActivity() {
         val options = ActivityOptions.makeSceneTransitionAnimation(
             this, *post.run {
                 listOf(
-                    root, id, update, dot, binding.fab, title,
+                    root, id, update, dot, binding.fab,
                     findViewById(android.R.id.statusBarBackground), binding.appbar,
                 ).map { it.pair() }.toTypedArray()
             }
         )
         intent.putExtra("post", post.post)
-        intent.putExtra("position", post.root.tag as Int)
+        intent.putExtra("position", (binding.recycle.adapter as? PostAdapter)?.run {
+            currentList.indexOfFirst { it is Post && it.id == post.post!!.id }
+        } ?: -1)
         setExitSharedElementCallback(null as SharedElementCallback?)
         window.exitTransition = Slide(Gravity.START).apply {
             interpolator = AccelerateInterpolator()
@@ -102,6 +105,7 @@ class MainActivity : AppCompatActivity() {
 
     @ExperimentalTime
     override fun onCreate(savedInstanceState: Bundle?) {
+        applyTheme()
         super.onCreate(savedInstanceState)
         loadToken()
         model.viewModelScope.launch {
@@ -117,9 +121,12 @@ class MainActivity : AppCompatActivity() {
             postInit = {
                 root.setOnClickListener {
                     if (expanded.visibility != View.VISIBLE) {
-                        binding.recycle.adapter?.notifyItemChanged(
-                            it.tag as Int, post!!.copy(expanded = true)
-                        )
+                        (binding.recycle.adapter as? PostAdapter)?.apply {
+                            currentList.indexOfFirst { it is Post && it.id == post!!.id }
+                                .takeIf { it != -1 }?.let {
+                                    notifyItemChanged(it, post!!.copy(expanded = true))
+                                }
+                        }
                     } else openDetail(this)
                 }
             },
@@ -200,6 +207,14 @@ class MainActivity : AppCompatActivity() {
                 // TODO: search bar transition
             }
         }
+        binding.recycle.addOnScrollListener(object : RecyclerView.OnScrollListener() {
+            override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
+                menu.findItem(R.id.refresh).isVisible =
+                    with(recyclerView.layoutManager as LinearLayoutManager) {
+                        findFirstCompletelyVisibleItemPosition() > 0
+                    }
+            }
+        })
     }
 
     @ExperimentalTime
@@ -219,7 +234,7 @@ class MainActivity : AppCompatActivity() {
             true
         }
         R.id.settings -> {
-            startActivity(Intent(this, SettingsActivity::class.java))
+            startActivityForResult(Intent(this, SettingsActivity::class.java), SETTINGS)
             true
         }
         else -> false
@@ -235,8 +250,18 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    @ExperimentalTime
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
-        if (resultCode == LOGIN_RESULT) loadToken()
+        when (resultCode) {
+            LOGIN_RESULT -> {
+                loadToken()
+                model.refresh(this)
+            }
+            SettingsActivity.SETTINGS_RESULT -> {
+                applyTheme()
+                recreate()
+            }
+        }
     }
 }
