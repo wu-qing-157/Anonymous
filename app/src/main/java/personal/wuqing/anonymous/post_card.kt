@@ -60,6 +60,7 @@ data class Post constructor(
     val readCount: Int,
     val colorG: ColorG,
     val nameG: NameG,
+    val myTag: Tag?,
 ) : PostListElem(), Serializable {
     enum class Tag(val display: String, val prefName: String, val backend: String) {
         SEX("性相关", "fold_sex", "sex"),
@@ -93,6 +94,7 @@ data class Post constructor(
         readCount = json.getInt("Read"),
         colorG = ColorG(json.getString("ThreadID").toLong()),
         nameG = NameG(json.getString("AnonymousType"), json.getLong("RandomSeed")),
+        myTag = Tag.values().firstOrNull { it.backend == json.optString("MyTag") },
     )
 
     val avatar = colorG[0]
@@ -121,7 +123,7 @@ data class Post constructor(
         }
 
     fun tags(context: Context) =
-        SpannableString("${if (top) "置顶" else ""}${tag?.display ?: ""} ").apply {
+        SpannableString("${if (top) "置顶" else ""}${tag?.display ?: "点踩较多"} ").apply {
             if (top) setSpan(
                 TagSpan(TypedValue().run {
                     context.theme.resolveAttribute(R.attr.colorPrimary, this, true)
@@ -129,11 +131,11 @@ data class Post constructor(
                 }, Color.WHITE), 0, 2,
                 Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
             )
-            if (tag != null) setSpan(
+            setSpan(
                 TagSpan(TypedValue().run {
                     context.theme.resolveAttribute(R.attr.colorSecondaryVariant, this, true)
                     data
-                }, Color.WHITE), if (top) 2 else 0, tag.display.length + if (top) 2 else 0,
+                }, Color.WHITE), if (top) 2 else 0, (tag?.display?.length ?: 4) + if (top) 2 else 0,
                 Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
             )
         }
@@ -271,8 +273,9 @@ class PostAdapter(
     }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int, payloads: MutableList<Any>) {
-        if (holder is ViewHolder.PostCard && payloads.singleOrNull() is Post)
-            holder.bind(payloads.single() as Post)
+        if (holder is ViewHolder.PostCard)
+            (payloads.singleOrNull() as? Post)?.let { holder.bind(it) }
+                ?: super.onBindViewHolder(holder, position, payloads)
         else super.onBindViewHolder(holder, position, payloads)
     }
 
@@ -297,10 +300,14 @@ object PostDiffCallback : DiffUtil.ItemCallback<PostListElem>() {
 fun CardView.magic(post: Post) {
     val binding = DataBindingUtil.getBinding<PostCardBinding>(this)!!
     val context = context
-    val folded = !post.showInDetail && !post.expanded && post.tag?.let {
-        PreferenceManager.getDefaultSharedPreferences(context)
-            .getString(post.tag.prefName, "fold") == "fold"
-    } ?: false
+    val folded = !post.showInDetail && !post.expanded && (
+            (post.likeCount < 0 &&
+                    PreferenceManager.getDefaultSharedPreferences(context)
+                        .getString("fold_thumb_down", "fold") == "fold") ||
+                    post.tag?.let {
+                        PreferenceManager.getDefaultSharedPreferences(context)
+                            .getString(it.prefName, "fold") == "fold"
+                    } ?: false)
     binding.expanded.visibility = if (folded) View.GONE else View.VISIBLE
     binding.folded.visibility = if (folded) View.VISIBLE else View.GONE
     val showMenu = {
@@ -362,7 +369,7 @@ fun CardView.magic(post: Post) {
                         else block()
                     }
                     5 -> (context as? MainActivity)?.apply {
-                        showTag(post.id) { model.tag(this, post, it) }
+                        showTag(post.id, post.myTag) { model.tag(this, post, it) }
                     }
                     else -> links[i - 6].second()
                 }
@@ -374,18 +381,20 @@ fun CardView.magic(post: Post) {
     setOnLongClickListener {
         if (folded) {
             MaterialAlertDialogBuilder(context).apply {
-                setItems(arrayOf("展开", "直接隐藏 ${post.tag!!.display}")) { _, it ->
+                setItems(
+                    post.tag?.display?.let { arrayOf("展开", "直接隐藏 $it") }
+                        ?: arrayOf("展开")) { _, it ->
                     when (it) {
                         0 -> this@magic.performClick()
                         1 -> {
                             with(PreferenceManager.getDefaultSharedPreferences(context).edit()) {
-                                putString(post.tag.prefName, "hide")
+                                putString(post.tag!!.prefName, "hide")
                                 commit()
                             }
                             (context as? MainActivity)?.apply {
                                 model.list.value = model.list.value?.filter { it.tag != post.tag }
                                 Snackbar.make(
-                                    this.binding.swipeRefresh, "已直接隐藏 ${post.tag.display}",
+                                    this.binding.swipeRefresh, "已直接隐藏 ${post.tag!!.display}",
                                     Snackbar.LENGTH_SHORT
                                 ).show()
                             }
@@ -444,7 +453,7 @@ class PostListViewModel : ViewModel() {
 
     var category = Category.ALL
     val search = MutableLiveData<String>(null)
-    var refreshingJob: Job? = null
+    private var refreshingJob: Job? = null
     private var last = "NULL"
 
     @ExperimentalTime
@@ -461,20 +470,22 @@ class PostListViewModel : ViewModel() {
                         if (search.value.isNullOrBlank())
                             Network.fetchPost(category.type, category.category, last)
                         else
-                            Network.search(search.value!!)
+                            Network.search(search.value!!, last)
                     this@PostListViewModel.last = last
                     if (new.isEmpty()) break
                     tot.addAll(new.filter {
                         (it.tag == null || PreferenceManager.getDefaultSharedPreferences(context)
                             .getString(it.tag.prefName, "fold") != "hide") &&
                                 !context.getSharedPreferences("blocked", Context.MODE_PRIVATE)
-                                    .getBoolean(it.id, false)
+                                    .getBoolean(it.id, false) &&
+                                (it.likeCount >= 0 ||
+                                        PreferenceManager.getDefaultSharedPreferences(context)
+                                            .getString("fold_thumb_down", "fold") != "hide")
                     })
                 }
                 list.value = tot
                 delay(100)
-                bottom.value =
-                    if (tot.size < 8) BottomStatus.NO_MORE else BottomStatus.IDLE
+                bottom.value = if (tot.size < 8) BottomStatus.NO_MORE else BottomStatus.IDLE
             } catch (e: Network.NotLoggedInException) {
                 context.needLogin()
             } catch (e: Network.BannedException) {
@@ -569,11 +580,12 @@ fun Context.showReport(id: String, report: () -> Unit) =
         show()
     }
 
-fun Activity.showTag(id: String, tag: (Post.Tag) -> Unit) =
+fun Activity.showTag(id: String, myTag: Post.Tag?, tag: (Post.Tag) -> Unit) =
     MaterialAlertDialogBuilder(this).apply {
         setCustomTitle(TagDialogBinding.inflate(layoutInflater).run {
             title.text = "为 #$id 建议标签"
-            message.text = "被数个用户建议后，帖子将自动被加上相应标签，并在选择折叠/屏蔽这个标签的用户处正确地被折叠/屏蔽。"
+            message.text =
+                "被数个用户建议后，帖子将自动被加上相应标签，并在选择折叠/屏蔽这个标签的用户处正确地被折叠/屏蔽。${myTag?.display?.let { "\n\n您已建议将其标记为 $it 。" } ?: ""}"
             root
         })
         setItems(Post.Tag.values().map { it.display }.toTypedArray()) { _, i ->

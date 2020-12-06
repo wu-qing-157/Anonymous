@@ -14,7 +14,6 @@ import android.view.inputmethod.InputMethodManager
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.PopupMenu
-import androidx.coordinatorlayout.widget.CoordinatorLayout
 import androidx.core.app.ShareCompat
 import androidx.core.app.SharedElementCallback
 import androidx.core.view.MenuCompat
@@ -24,7 +23,6 @@ import androidx.lifecycle.viewModelScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.SimpleItemAnimator
-import com.google.android.material.behavior.HideBottomViewOnScrollBehavior
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
@@ -64,7 +62,7 @@ class PostDetailActivity : AppCompatActivity() {
         }
     }
 
-    private fun jump(to: Int) = model.viewModelScope.launch {
+    private fun jump(to: Int, show: Boolean = true) = model.viewModelScope.launch {
         val target =
             if (to == 0) 0
             else (binding.recycle.adapter as ReplyAdapter).currentList.indexOfFirst {
@@ -80,23 +78,18 @@ class PostDetailActivity : AppCompatActivity() {
             return@launch
         }
         with(binding.recycle.layoutManager as LinearLayoutManager) {
-            val params =
-                binding.bottomBar.layoutParams as CoordinatorLayout.LayoutParams
-            val behavior = params.behavior as HideBottomViewOnScrollBehavior
             if (findFirstCompletelyVisibleItemPosition() >= target) {
                 binding.appbar.setExpanded(true, true)
-                behavior.slideUp(binding.bottomBar)
                 delay(50)
                 binding.recycle.smoothScrollToPosition(max(target - 1, 0))
             } else if (findLastCompletelyVisibleItemPosition() <= target) {
                 binding.appbar.setExpanded(false, true)
-                behavior.slideDown(binding.bottomBar)
                 binding.recycle.smoothScrollToPosition(
                     min(target + 1, binding.recycle.adapter!!.itemCount)
                 )
             }
         }
-        while (true) {
+        while (show) {
             delay(100)
             with(binding.recycle.findViewHolderForLayoutPosition(target)?.itemView ?: continue) {
                 delay(100)
@@ -112,12 +105,6 @@ class PostDetailActivity : AppCompatActivity() {
         model.viewModelScope.launch {
             binding.replyHint.hint = if (to.isBlank()) "回复原贴" else "回复 #$to ($name)"
             binding.reply.tag = to
-            with(binding.bottomBar.layoutParams as CoordinatorLayout.LayoutParams) {
-                with(behavior as HideBottomViewOnScrollBehavior) {
-                    if (show) slideUp(binding.bottomBar) else slideDown(binding.bottomBar)
-                }
-            }
-            delay(100)
             binding.reply.apply {
                 if (show) requestFocus() else clearFocus()
             }
@@ -125,6 +112,16 @@ class PostDetailActivity : AppCompatActivity() {
                 getSystemService(InputMethodManager::class.java).apply {
                     if (show) showSoftInput(binding.reply, 0)
                     else hideSoftInputFromWindow(binding.reply.windowToken, 0)
+                }
+            }
+            if (show) model.viewModelScope.launch {
+                delay(300)
+                to.toIntOrNull()?.let {
+                    jump(it, false)
+                    for (i in 1..3) {
+                        binding.recycle.findViewHolderForLayoutPosition(it)?.itemView ?: continue
+                        delay(100)
+                    }
                 }
             }
         }
@@ -152,7 +149,16 @@ class PostDetailActivity : AppCompatActivity() {
 
         val adapter = ReplyAdapter(
             replyInit = {
-                root.setOnClickListener { reply(reply!!.id, reply!!.name) }
+                root.setOnClickListener {
+                    if (expanded.visibility != View.VISIBLE) {
+                        (binding.recycle.adapter as? ReplyAdapter)?.apply {
+                            currentList.indexOfFirst { it is Reply && it.id == reply!!.id }
+                                .takeIf { it != -1 }?.let {
+                                    notifyItemChanged(it, reply!!.copy(expanded = true))
+                                }
+                        }
+                    } else reply(reply!!.id, reply!!.name)
+                }
                 if (reply!!.showTo()) jump.setOnClickListener { jump(reply!!.toFloor) }
                 likeButton.setOnClickListener { model.like(this) }
             },
@@ -191,23 +197,19 @@ class PostDetailActivity : AppCompatActivity() {
             }
             addOnScrollListener(object : RecyclerView.OnScrollListener() {
                 override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
-                    if (newState == RecyclerView.SCROLL_STATE_DRAGGING) binding.reply.clearFocus()
-                    context.getSystemService(InputMethodManager::class.java)
-                        .hideSoftInputFromWindow(binding.reply.windowToken, 0)
-                    if (with(layoutManager as LinearLayoutManager) {
+                    if (newState == RecyclerView.SCROLL_STATE_DRAGGING &&
+                        binding.reply.text.isNullOrEmpty()
+                    ) {
+                        binding.reply.clearFocus()
+                        reply("", "", false)
+                    }
+                    if (newState == RecyclerView.SCROLL_STATE_IDLE &&
+                        model.bottom.value == BottomStatus.IDLE &&
+                        with(layoutManager as LinearLayoutManager) {
                             findLastVisibleItemPosition() >= itemCount - 2 &&
                                     findFirstCompletelyVisibleItemPosition() > 0
-                        }) {
-                        if (newState == RecyclerView.SCROLL_STATE_DRAGGING)
-                            with(binding.bottomBar.layoutParams as CoordinatorLayout.LayoutParams) {
-                                with(behavior as HideBottomViewOnScrollBehavior) {
-                                    slideDown(binding.bottomBar)
-                                }
-                            }
-                        if (newState == RecyclerView.SCROLL_STATE_IDLE &&
-                            model.bottom.value == BottomStatus.IDLE
-                        ) model.more(context)
-                    }
+                        }
+                    ) model.more(context)
                 }
             })
             viewTreeObserver.addOnPreDrawListener {
@@ -251,6 +253,11 @@ class PostDetailActivity : AppCompatActivity() {
             if (it) {
                 reply("", "", false)
                 binding.reply.setText("")
+                when (model.sort) {
+                    Network.ReplySort.EARLIEST -> model.more(this)
+                    Network.ReplySort.NEWEST -> model.refresh(this)
+                    else -> Unit
+                }
             }
         }
 
@@ -340,7 +347,9 @@ class PostDetailActivity : AppCompatActivity() {
             }
         }
         R.id.report -> true.also { showReport(model.postId) { model.report(this) } }
-        R.id.tag -> true.also { showTag(model.postId) { model.tag(this, it) } }
+        R.id.tag -> true.also {
+            showTag(model.postId, model.post.value?.myTag) { model.tag(this, it) }
+        }
         else -> false
     }
 

@@ -9,7 +9,15 @@
 
     <PreferenceCategory
         app:summary="已加载内容需刷新后生效"
-        app:title="标签过滤">
+        app:title="过滤">
+        <ListPreference
+            app:defaultValue="fold"
+            app:dialogTitle="是否折叠踩大于赞的帖子和回复"
+            app:entries="@array/fold_summary"
+            app:entryValues="@array/fold_entry"
+            app:key="fold_thumb_down"
+            app:title="点踩较多"
+            app:useSimpleSummaryProvider="true" />
         <ListPreference
             app:defaultValue="fold"
             app:dialogTitle="是否折叠 性相关 帖子"

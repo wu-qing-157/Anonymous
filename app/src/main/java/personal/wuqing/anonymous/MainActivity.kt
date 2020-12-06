@@ -258,6 +258,10 @@ class MainActivity : AppCompatActivity() {
                 loadToken()
                 model.refresh(this)
             }
+            NEW_POST_RESULT -> {
+                Snackbar.make(binding.swipeRefresh, "发帖成功", Snackbar.LENGTH_SHORT).show()
+                model.refresh(this)
+            }
             SettingsActivity.SETTINGS_RESULT -> {
                 applyTheme()
                 recreate()

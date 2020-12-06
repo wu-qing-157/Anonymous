@@ -27,6 +27,7 @@ import android.view.View
 import android.view.animation.AccelerateInterpolator
 import android.view.animation.DecelerateInterpolator
 import android.widget.TextView
+import androidx.browser.customtabs.CustomTabColorSchemeParams
 import androidx.browser.customtabs.CustomTabsIntent
 import androidx.core.graphics.toColorInt
 import androidx.core.text.getSpans
@@ -46,6 +47,8 @@ enum class BottomStatus {
 enum class Like {
     DISLIKE, DISLIKE_WAIT, NORMAL, LIKE_WAIT, LIKE
 }
+
+class MagicHide
 
 val themes = mapOf(
     "default" to R.style.OverlayColorDefault,
@@ -99,10 +102,13 @@ fun View.pair(): android.util.Pair<View, String> = android.util.Pair.create(this
 
 fun Context.launchCustomTab(uri: Uri) {
     CustomTabsIntent.Builder().apply {
-        setToolbarColor(TypedValue().apply {
-            theme.resolveAttribute(R.attr.colorPrimary, this, true)
-        }.data)
-        addDefaultShareMenuItem()
+        setDefaultColorSchemeParams(CustomTabColorSchemeParams.Builder().run {
+            setToolbarColor(TypedValue().apply {
+                theme.resolveAttribute(R.attr.colorPrimary, this, true)
+            }.data)
+            build()
+        })
+        setShareState(CustomTabsIntent.SHARE_STATE_ON)
     }.build().launchUrl(this, uri)
 }
 

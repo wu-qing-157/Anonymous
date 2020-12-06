@@ -13,6 +13,7 @@
         android:id="@+id/refresh"
         android:icon="@drawable/ic_refresh"
         android:title="刷新"
+        android:visible="false"
         app:showAsAction="ifRoom" />
 
     <item

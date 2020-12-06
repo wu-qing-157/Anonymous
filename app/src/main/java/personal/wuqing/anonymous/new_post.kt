@@ -5,7 +5,6 @@ import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
 import android.view.*
-import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.PopupMenu
@@ -55,9 +54,11 @@ class NewPostModel : ViewModel() {
     }
 }
 
+const val NEW_POST_RESULT = 20201207 and 0xffff
+
 class NewPostActivity : AppCompatActivity() {
     lateinit var binding: ActivityNewBinding
-    val model by viewModels<NewPostModel>()
+    private val model by viewModels<NewPostModel>()
 
     companion object {
         val categoryMap = mapOf(
@@ -159,7 +160,7 @@ class NewPostActivity : AppCompatActivity() {
         }
         model.success.observe(this) {
             if (it) {
-                Toast.makeText(this, "发送成功", Toast.LENGTH_SHORT).show()
+                setResult(NEW_POST_RESULT)
                 finishAfterTransition()
             }
         }

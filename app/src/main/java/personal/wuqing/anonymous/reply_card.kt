@@ -17,11 +17,13 @@ import androidx.databinding.DataBindingUtil
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.preference.PreferenceManager
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.json.JSONObject
@@ -39,6 +41,7 @@ object ReplyListOrder : ReplyListElem()
 object ReplyListBottom : ReplyListElem()
 
 data class Reply constructor(
+    val expanded: Boolean,
     val id: String,
     val update: String,
     val name: String,
@@ -51,6 +54,7 @@ data class Reply constructor(
 ) : ReplyListElem(), Serializable {
     @ExperimentalTime
     constructor(json: JSONObject, nameG: NameG, colorG: ColorG) : this(
+        expanded = false,
         id = json.getString("FloorID"),
         update = json.getString("RTime").display(),
         name = nameG[json.getString("Speakername").toInt()],
@@ -62,7 +66,7 @@ data class Reply constructor(
             1 -> Like.LIKE
             else -> error("")
         },
-        likeCount = json.getInt("Like"),
+        likeCount = json.getInt("Like") - json.getInt("Dislike"),
         toName = nameG[json.getString("Replytoname").toInt()],
         toFloor = json.getInt("Replytofloor"),
     )
@@ -192,8 +196,13 @@ class ReplyAdapter(
     }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int, payloads: MutableList<Any>) {
-        if (holder is ViewHolder.PostCard && payloads.singleOrNull() is Post) holder.bind()
-        else super.onBindViewHolder(holder, position, payloads)
+        when {
+            holder is ViewHolder.PostCard && payloads.singleOrNull() is Post -> holder.bind()
+            holder is ViewHolder.ReplyCard ->
+                (payloads.singleOrNull() as? Reply)?.let { holder.bind(it) }
+                    ?: super.onBindViewHolder(holder, position, payloads)
+            else -> super.onBindViewHolder(holder, position, payloads)
+        }
     }
 
     override fun getItemViewType(position: Int): Int {
@@ -220,10 +229,19 @@ object ReplyDiffCallback : DiffUtil.ItemCallback<ReplyListElem>() {
 fun CardView.magic(reply: Reply) {
     val binding = DataBindingUtil.getBinding<ReplyCardBinding>(this)!!
     val context = context
+    val folded = !reply.expanded && reply.likeCount < 0 &&
+            PreferenceManager.getDefaultSharedPreferences(context)
+                .getString("fold_thumb_down", "fold") == "fold"
+    binding.expanded.visibility = if (folded) View.GONE else View.VISIBLE
+    binding.folded.visibility = if (folded) View.VISIBLE else View.GONE
     val showMenu = {
         val spannable = SpannableString(reply.content).apply { links(context as Activity) }
+        val thumbDown = when (reply.like) {
+            Like.NORMAL -> arrayOf("踩")
+            else -> arrayOf()
+        }
         val items = arrayOf(
-            "回复", "复制内容", "自由复制", "踩", "举报"
+            "回复", "复制内容", "自由复制", "举报", *thumbDown
         )
         MaterialAlertDialogBuilder(context).apply {
             setItems(items) { _: DialogInterface, i: Int ->
@@ -231,8 +249,7 @@ fun CardView.magic(reply: Reply) {
                     0 -> binding.root.performClick()
                     1 -> copy(context, reply.content)
                     2 -> showSelectDialog(context, spannable)
-                    3 -> (context as? PostDetailActivity)?.apply { model.dislike(binding) }
-                    4 -> (context as? PostDetailActivity)?.apply {
+                    3 -> (context as? PostDetailActivity)?.apply {
                         MaterialAlertDialogBuilder(this).apply {
                             setTitle("举报 #${model.postId} / #${reply.id}")
                             setMessage("确定要举报吗？\n楼层被举报数次后将被屏蔽，我们一起维护无可奉告论坛环境。")
@@ -242,13 +259,14 @@ fun CardView.magic(reply: Reply) {
                             show()
                         }
                     }
+                    4 -> (context as? PostDetailActivity)?.apply { model.dislike(binding) }
                 }
             }
             show()
         }
         true
     }
-    setOnLongClickListener { showMenu() }
+    if (!folded) setOnLongClickListener { showMenu() }
     binding.content.apply {
         movementMethod = MagicClickableMovementMethod
         isClickable = false
@@ -270,55 +288,79 @@ class ReplyListViewModel : ViewModel() {
     val favor = MutableLiveData(false)
     var postId = ""
     private var last = "NULL"
+    private var refreshingJob: Job? = null
 
     @ExperimentalTime
-    fun refresh(context: Context) = viewModelScope.launch {
-        refresh.value = true
-        delay(300)
-        try {
-            val (pair, newList) = Network.fetchReply(postId, sort)
-            val (last, newPost) = pair
-            this@ReplyListViewModel.last = last
-            post.value = newPost
-            list.value = newList
-            delay(100)
-            bottom.value =
-                if (list.value.isNullOrEmpty()) BottomStatus.NO_MORE else BottomStatus.IDLE
-        } catch (e: Network.NotLoggedInException) {
-            context.needLogin()
-        } catch (e: Network.BannedException) {
-            e.showLogout(context)
-        } catch (e: CancellationException) {
-            refresh.value = false
-        } catch (e: Exception) {
-            info.value = "网络错误"
-            bottom.value = BottomStatus.NETWORK_ERROR
-        } finally {
-            refresh.value = false
+    fun refresh(context: Context) {
+        refreshingJob?.cancel(CancellationException())
+        refreshingJob = viewModelScope.launch {
+            refresh.value = true
+            delay(300)
+            try {
+                val tot = mutableListOf<Reply>()
+                last = "NULL"
+                while (tot.size < 8) {
+                    val (pair, newList) = Network.fetchReply(postId, sort, last)
+                    val (last, newPost) = pair
+                    this@ReplyListViewModel.last = last
+                    post.value = newPost
+                    if (newList.isEmpty()) break
+                    tot.addAll(newList.filter {
+                        it.likeCount >= 0 || PreferenceManager.getDefaultSharedPreferences(context)
+                            .getString("fold_thumb_down", "fold") != "hide"
+                    })
+                }
+                list.value = tot
+                delay(100)
+                bottom.value = if (tot.size < 8) BottomStatus.NO_MORE else BottomStatus.IDLE
+            } catch (e: Network.NotLoggedInException) {
+                context.needLogin()
+            } catch (e: Network.BannedException) {
+                e.showLogout(context)
+            } catch (e: CancellationException) {
+                refresh.value = false
+            } catch (e: Exception) {
+                info.value = e.stackTraceToString() //"网络错误"
+                bottom.value = BottomStatus.NETWORK_ERROR
+            } finally {
+                refresh.value = false
+            }
         }
     }
 
     @ExperimentalTime
-    fun more(context: Context) = viewModelScope.launch {
-        bottom.value = BottomStatus.REFRESHING
-        try {
-            delay(300)
-            val (pair, newList) = Network.fetchReply(postId, sort, last)
-            val (last, newPost) = pair
-            this@ReplyListViewModel.last = last
-            post.value = newPost
-            list.value = list.value!! + newList
-            delay(100)
-            bottom.value = if (newList.isEmpty()) BottomStatus.NO_MORE else BottomStatus.IDLE
-        } catch (e: Network.NotLoggedInException) {
-            context.needLogin()
-        } catch (e: Network.BannedException) {
-            e.showLogout(context)
-        } catch (e: CancellationException) {
-            bottom.value = BottomStatus.IDLE
-        } catch (e: Exception) {
-            info.value = "网络错误"
-            bottom.value = BottomStatus.NETWORK_ERROR
+    fun more(context: Context) {
+        refreshingJob?.cancel(CancellationException())
+        refreshingJob = viewModelScope.launch {
+            try {
+                bottom.value = BottomStatus.REFRESHING
+                delay(300)
+                var newCount = 0
+                while (newCount < 8) {
+                    val (pair, newList) = Network.fetchReply(postId, sort, last)
+                    val (last, newPost) = pair
+                    this@ReplyListViewModel.last = last
+                    post.value = newPost
+                    if (newList.isEmpty()) break
+                    val newFiltered = newList.filter {
+                        it.likeCount >= 0 || PreferenceManager.getDefaultSharedPreferences(context)
+                            .getString("fold_thumb_down", "fold") != "hide"
+                    }
+                    list.value = list.value!! + newFiltered
+                    newCount += newFiltered.size
+                }
+                delay(100)
+                bottom.value = if (newCount < 8) BottomStatus.NO_MORE else BottomStatus.IDLE
+            } catch (e: Network.NotLoggedInException) {
+                context.needLogin()
+            } catch (e: Network.BannedException) {
+                e.showLogout(context)
+            } catch (e: CancellationException) {
+                bottom.value = BottomStatus.IDLE
+            } catch (e: Exception) {
+                info.value = "网络错误"
+                bottom.value = BottomStatus.NETWORK_ERROR
+            }
         }
     }
 
@@ -389,10 +431,10 @@ class ReplyListViewModel : ViewModel() {
 
     fun reply(editText: EditText) = viewModelScope.launch {
         if (editText.text.toString().isBlank()) {
-            info.value = "发送失败：内容为空"
+            info.value = "内容不能空"
             return@launch
         } else if (editText.text.count { it == '\n' } >= 20) {
-            info.value = "发送失败：换行不能超过20次哟"
+            info.value = "换行不能超过20次哟"
             return@launch
         }
         sending.value = true
@@ -400,6 +442,7 @@ class ReplyListViewModel : ViewModel() {
         try {
             Network.reply(postId, editText.tag as String, editText.text.toString())
             success.value = true
+            info.value = "回复成功"
         } catch (e: Network.NotLoggedInException) {
             editText.context.needLogin()
         } catch (e: Network.BannedException) {

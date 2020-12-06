@@ -162,7 +162,7 @@ object Network {
     }
 
     enum class ReplySort(val op: String) {
-        EARLIEST("0"), NEWEST("1"), HOST("2"), HOT("3"),
+        EARLIEST("0"), NEWEST("1"), HOST("-1"), HOT("2"),
     }
 
     @ExperimentalTime
@@ -197,7 +197,7 @@ object Network {
     }
 
     suspend fun reply(post: String, reply: String, content: String) = withContext(Dispatchers.IO) {
-        getData(op = if (reply == "0") "4" else "4_2", p1 = post, p3 = content, p4 = reply) { true }
+        getData(op = if (reply == "") "4" else "4_2", p1 = post, p3 = content, p4 = reply) { true }
     }
 
     suspend fun post(
