@@ -242,7 +242,10 @@ class PostDetailActivity : AppCompatActivity() {
         model.refresh.observe(context) { binding.swipeRefresh.isRefreshing = it }
         model.info.observe(context) {
             if (!it.isNullOrBlank()) {
-                Snackbar.make(binding.swipeRefresh, it, Snackbar.LENGTH_SHORT).show()
+                Snackbar.make(binding.swipeRefresh, it, Snackbar.LENGTH_SHORT).apply {
+                    anchorView = binding.bottomBar
+                    show()
+                }
                 model.info.value = ""
             }
         }
