@@ -151,7 +151,9 @@ class LoginActivity : AppCompatActivity() {
             binding.loginLoading.visibility = if (it) View.VISIBLE else View.INVISIBLE
         }
         model.info.observe(this) {
-            if (it != "") Snackbar.make(binding.root, it, Snackbar.LENGTH_SHORT).show()
+            if (!it.isNullOrBlank()) {
+                Snackbar.make(binding.root, it, Snackbar.LENGTH_SHORT).show()
+            }
         }
         model.result.observe(this) {
             if (it) {

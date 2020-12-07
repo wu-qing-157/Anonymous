@@ -301,7 +301,7 @@ fun CardView.magic(post: Post) {
     val binding = DataBindingUtil.getBinding<PostCardBinding>(this)!!
     val context = context
     val folded = !post.showInDetail && !post.expanded && (
-            (post.likeCount < 0 &&
+            (post.likeCount <= -5 &&
                     PreferenceManager.getDefaultSharedPreferences(context)
                         .getString("fold_thumb_down", "fold") == "fold") ||
                     post.tag?.let {
@@ -484,7 +484,7 @@ class PostListViewModel : ViewModel() {
                             .getString(it.tag.prefName, "fold") != "hide") &&
                                 !context.getSharedPreferences("blocked", Context.MODE_PRIVATE)
                                     .getBoolean(it.id, false) &&
-                                (it.likeCount >= 0 ||
+                                (it.likeCount > -5 ||
                                         PreferenceManager.getDefaultSharedPreferences(context)
                                             .getString("fold_thumb_down", "fold") != "hide")
                     })

@@ -167,7 +167,10 @@ class NewPostActivity : AppCompatActivity() {
             }
         }
         model.info.observe(this) {
-            if (!it.isNullOrBlank()) Snackbar.make(binding.layout, it, Snackbar.LENGTH_SHORT).show()
+            if (!it.isNullOrBlank()) {
+                Snackbar.make(binding.layout, it, Snackbar.LENGTH_SHORT).show()
+                model.info.value = ""
+            }
         }
 
         findViewById<View>(android.R.id.content).transitionName = "bottom"

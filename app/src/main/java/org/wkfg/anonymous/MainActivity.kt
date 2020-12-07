@@ -164,7 +164,7 @@ class MainActivity : AppCompatActivity() {
                                 setMessage("更新无可奉告来体验新功能，点击 好的 将直接开始下载。")
                                 setPositiveButton("好的") { _, _ -> launchCustomTab(Uri.parse(url)) }
                                 setNeutralButton("下次打开时再提醒我", null)
-                                setNegativeButton("该版本不再提醒") { _, _ ->
+                                setNegativeButton("下次重大更新前不再提醒") { _, _ ->
                                     with(
                                         getSharedPreferences("skip_version", MODE_PRIVATE).edit()
                                     ) {
@@ -245,8 +245,10 @@ class MainActivity : AppCompatActivity() {
         }
         model.refresh.observe(this) { binding.swipeRefresh.isRefreshing = it }
         model.info.observe(this) {
-            if (!it.isNullOrBlank())
+            if (!it.isNullOrBlank()) {
                 Snackbar.make(binding.swipeRefresh, it, Snackbar.LENGTH_SHORT).show()
+                model.info.value = ""
+            }
         }
         model.search.observe(this) { it?.let { model.refresh(this) } }
 
