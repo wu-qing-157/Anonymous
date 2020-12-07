@@ -1,4 +1,4 @@
-package personal.wuqing.anonymous
+package org.wkfg.anonymous
 
 import android.content.Context
 import android.content.Intent
@@ -19,7 +19,7 @@ import com.google.android.material.transition.platform.MaterialContainerTransfor
 import com.google.android.material.transition.platform.MaterialContainerTransformSharedElementCallback
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import personal.wuqing.anonymous.databinding.ActivityNewBinding
+import org.wkfg.anonymous.databinding.ActivityNewBinding
 
 class NewPostModel : ViewModel() {
     val sending = MutableLiveData(false)
@@ -62,14 +62,16 @@ class NewPostActivity : AppCompatActivity() {
 
     companion object {
         val categoryMap = mapOf(
-            R.id.campus to Post.Category.SPORT,
-            R.id.music to Post.Category.MUSIC,
-            R.id.science to Post.Category.SCIENCE,
-            R.id.it to Post.Category.IT,
+            R.id.campus to Post.Category.CAMPUS,
             R.id.entertain to Post.Category.ENTERTAINMENT,
             R.id.emotion to Post.Category.EMOTION,
+            R.id.science to Post.Category.SCIENCE,
+            R.id.it to Post.Category.IT,
             R.id.social to Post.Category.SOCIAL,
-            R.id.others to Post.Category.OTHERS,
+            R.id.music to Post.Category.MUSIC,
+            R.id.movie to Post.Category.MOVIE,
+            R.id.art to Post.Category.ART,
+            R.id.life to Post.Category.LIFE,
         )
         val themeMap = mapOf(
             R.id.alice_and_bob to NameTheme.ALICE_AND_BOB,

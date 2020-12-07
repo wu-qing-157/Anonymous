@@ -1,4 +1,4 @@
-package personal.wuqing.anonymous
+package org.wkfg.anonymous
 
 import kotlinx.coroutines.runBlocking
 import org.junit.Test

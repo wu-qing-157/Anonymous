@@ -1,4 +1,4 @@
-package personal.wuqing.anonymous
+package org.wkfg.anonymous
 
 import android.app.Activity
 import android.app.ActivityOptions

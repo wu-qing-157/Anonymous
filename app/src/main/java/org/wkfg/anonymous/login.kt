@@ -1,4 +1,4 @@
-package personal.wuqing.anonymous
+package org.wkfg.anonymous
 
 import android.app.Activity
 import android.content.Context
@@ -19,7 +19,7 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import personal.wuqing.anonymous.databinding.ActivityLoginBinding
+import org.wkfg.anonymous.databinding.ActivityLoginBinding
 import java.util.*
 
 const val LOGIN_RESULT = 20201129 and 0xffff

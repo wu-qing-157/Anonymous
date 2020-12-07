@@ -1,4 +1,4 @@
-package personal.wuqing.anonymous
+package org.wkfg.anonymous
 
 import android.content.Intent
 import android.os.Build
@@ -28,7 +28,7 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import personal.wuqing.anonymous.databinding.ActivityPostBinding
+import org.wkfg.anonymous.databinding.ActivityPostBinding
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.time.ExperimentalTime
@@ -157,6 +157,7 @@ class PostDetailActivity : AppCompatActivity() {
                                     notifyItemChanged(it, reply!!.copy(expanded = true))
                                 }
                         }
+                        model.list.value?.firstOrNull { it.id == reply?.id }?.expanded = true
                     } else reply(reply!!.id, reply!!.name)
                 }
                 if (reply!!.showTo()) jump.setOnClickListener { jump(reply!!.toFloor) }

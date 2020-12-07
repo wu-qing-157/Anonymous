@@ -78,7 +78,7 @@
                         android:maxLength="817"
                         android:maxLines="10"
                         android:padding="12dp"
-                        android:tag="0"
+                        android:tag=""
                         android:textSize="14sp"
                         app:endIconMode="clear_text" />
 

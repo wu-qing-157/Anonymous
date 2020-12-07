@@ -6,7 +6,7 @@
 
         <variable
             name="post"
-            type="personal.wuqing.anonymous.Post" />
+            type="org.wkfg.anonymous.Post" />
     </data>
 
     <com.google.android.material.card.MaterialCardView

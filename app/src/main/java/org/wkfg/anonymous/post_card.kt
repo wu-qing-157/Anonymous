@@ -1,4 +1,4 @@
-package personal.wuqing.anonymous
+package org.wkfg.anonymous
 
 import android.app.Activity
 import android.content.*
@@ -31,10 +31,10 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.json.JSONObject
-import personal.wuqing.anonymous.databinding.PostCardBinding
-import personal.wuqing.anonymous.databinding.PostFilterBinding
-import personal.wuqing.anonymous.databinding.RecycleBottomBinding
-import personal.wuqing.anonymous.databinding.TagDialogBinding
+import org.wkfg.anonymous.databinding.PostCardBinding
+import org.wkfg.anonymous.databinding.PostFilterBinding
+import org.wkfg.anonymous.databinding.RecycleBottomBinding
+import org.wkfg.anonymous.databinding.TagDialogBinding
 import java.io.Serializable
 import kotlin.time.ExperimentalTime
 
@@ -44,7 +44,7 @@ object PostListFilter : PostListElem()
 object PostListBottom : PostListElem()
 
 data class Post constructor(
-    val expanded: Boolean,
+    var expanded: Boolean,
     val top: Boolean,
     val showInDetail: Boolean,
     val tag: Tag?,
@@ -73,7 +73,7 @@ data class Post constructor(
     @ExperimentalTime
     constructor(json: JSONObject, showInDetail: Boolean) : this(
         expanded = false,
-        top = json.optInt("WhetherTop", 0) == 1,
+        top = json.optInt("WhetherTop") == 1,
         showInDetail = showInDetail,
         tag = Tag.values().firstOrNull { it.backend == json.getString("Tag") },
         id = json.getString("ThreadID"),
@@ -147,7 +147,7 @@ data class Post constructor(
     fun replyCount() = replyCount.toString()
     fun readCount() = readCount.toString()
     fun titleMaxLines() = Int.MAX_VALUE
-    fun contentMaxLines() = if (showInDetail) Int.MAX_VALUE else 5
+    fun contentMaxLines() = if (showInDetail) Int.MAX_VALUE else 4
 
     @ExperimentalUnsignedTypes
     private fun iconTint(context: Context, boolean: Boolean) = ColorStateList.valueOf(
@@ -156,9 +156,7 @@ data class Post constructor(
             data
         } else TypedValue().run {
             context.theme.resolveAttribute(android.R.attr.textColorSecondary, this, true)
-            data.toString(16).padStart(3, '0').toCharArray()
-                .joinToString("", prefix = "ff") { "$it$it" }
-                .toUInt(16).toInt()
+            data
         }
     )
 
@@ -190,14 +188,16 @@ data class Post constructor(
 
     enum class Category(val id: Int) {
         ALL(0),
-        SPORT(1),
-        MUSIC(2),
-        SCIENCE(3),
-        IT(4),
-        ENTERTAINMENT(5),
-        EMOTION(6),
-        SOCIAL(7),
-        OTHERS(8)
+        CAMPUS(1),
+        ENTERTAINMENT(2),
+        EMOTION(3),
+        SCIENCE(4),
+        IT(5),
+        SOCIAL(6),
+        MUSIC(7),
+        MOVIE(8),
+        ART(9),
+        LIFE(9),
     }
 }
 
@@ -439,16 +439,19 @@ class PostListViewModel : ViewModel() {
     enum class Category(val category: Post.Category, val type: Network.PostType) {
         ALL(Post.Category.ALL, Network.PostType.TIME),
         HOT(Post.Category.ALL, Network.PostType.TRENDING),
-        SPORTS(Post.Category.SPORT, Network.PostType.TIME),
-        MUSIC(Post.Category.MUSIC, Network.PostType.TIME),
-        SCIENCE(Post.Category.SCIENCE, Network.PostType.TIME),
-        IT(Post.Category.IT, Network.PostType.TIME),
+        CAMPUS(Post.Category.CAMPUS, Network.PostType.TIME),
         ENTERTAIN(Post.Category.ENTERTAINMENT, Network.PostType.TIME),
         EMOTION(Post.Category.EMOTION, Network.PostType.TIME),
+        SCIENCE(Post.Category.SCIENCE, Network.PostType.TIME),
+        IT(Post.Category.IT, Network.PostType.TIME),
         SOCIAL(Post.Category.SOCIAL, Network.PostType.TIME),
+        MUSIC(Post.Category.MUSIC, Network.PostType.TIME),
+        MOVIE(Post.Category.MOVIE, Network.PostType.TIME),
+        ART(Post.Category.ART, Network.PostType.TIME),
+        LIFE(Post.Category.LIFE, Network.PostType.TIME),
         MY(Post.Category.ALL, Network.PostType.MY),
         UNREAD(Post.Category.ALL, Network.PostType.MESSAGE),
-        FAVOUR(Post.Category.ALL, Network.PostType.FAVOURED)
+        FAVOR(Post.Category.ALL, Network.PostType.FAVOURED)
     }
 
     var category = Category.ALL
@@ -465,7 +468,8 @@ class PostListViewModel : ViewModel() {
             try {
                 val tot = mutableListOf<Post>()
                 last = "NULL"
-                while (tot.size < 8) {
+                for (rep in 1..5) {
+                    if (tot.size >= 8) break
                     val (last, new) =
                         if (search.value.isNullOrBlank())
                             Network.fetchPost(category.type, category.category, last)
@@ -473,7 +477,9 @@ class PostListViewModel : ViewModel() {
                             Network.search(search.value!!, last)
                     this@PostListViewModel.last = last
                     if (new.isEmpty()) break
-                    tot.addAll(new.filter {
+                    tot.addAll(if (category in listOf(Category.MY, Category.FAVOR, Category.UNREAD))
+                        new.onEach { it.expanded = true }
+                    else new.filter {
                         (it.tag == null || PreferenceManager.getDefaultSharedPreferences(context)
                             .getString(it.tag.prefName, "fold") != "hide") &&
                                 !context.getSharedPreferences("blocked", Context.MODE_PRIVATE)
@@ -493,7 +499,7 @@ class PostListViewModel : ViewModel() {
             } catch (e: CancellationException) {
                 refresh.value = false
             } catch (e: Exception) {
-                info.value = "网络错误"
+                info.value = e.stackTraceToString() //"网络错误"
                 bottom.value = BottomStatus.NETWORK_ERROR
             } finally {
                 refresh.value = false
@@ -509,7 +515,8 @@ class PostListViewModel : ViewModel() {
                 bottom.value = BottomStatus.REFRESHING
                 delay(300)
                 var newCount = 0
-                while (newCount < 8) {
+                for (rep in 1..5) {
+                    if (newCount >= 8) break
                     val (last, new) =
                         if (search.value.isNullOrBlank())
                             Network.fetchPost(category.type, category.category, last)
@@ -517,12 +524,15 @@ class PostListViewModel : ViewModel() {
                             Network.search(search.value!!, last)
                     this@PostListViewModel.last = last
                     if (new.isEmpty()) break
-                    val newFiltered = new.filter {
-                        (it.tag == null || PreferenceManager.getDefaultSharedPreferences(context)
-                            .getString(it.tag.prefName, "fold") != "hide") &&
-                                !context.getSharedPreferences("blocked", Context.MODE_PRIVATE)
-                                    .getBoolean(it.id, false)
-                    }
+                    val newFiltered =
+                        if (category in listOf(Category.MY, Category.FAVOR, Category.UNREAD))
+                            new.onEach { it.expanded = true }
+                        else new.filter {
+                            (it.tag == null || PreferenceManager.getDefaultSharedPreferences(context)
+                                .getString(it.tag.prefName, "fold") != "hide") &&
+                                    !context.getSharedPreferences("blocked", Context.MODE_PRIVATE)
+                                        .getBoolean(it.id, false)
+                        }
                     list.value = list.value!! + newFiltered
                     newCount += newFiltered.size
                 }

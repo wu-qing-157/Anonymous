@@ -3,7 +3,7 @@
     <group android:id="@+id/overall_category">
         <item
             android:id="@+id/all"
-            android:title="所有帖子" />
+            android:title="主干道" />
         <item
             android:id="@+id/hot"
             android:title="热门帖子" />
@@ -13,8 +13,11 @@
             android:id="@+id/campus"
             android:title="校园" />
         <item
-            android:id="@+id/music"
-            android:title="音乐" />
+            android:id="@+id/entertain"
+            android:title="娱乐" />
+        <item
+            android:id="@+id/emotion"
+            android:title="情感" />
         <item
             android:id="@+id/science"
             android:title="科学" />
@@ -22,14 +25,20 @@
             android:id="@+id/it"
             android:title="数码" />
         <item
-            android:id="@+id/entertain"
-            android:title="娱乐" />
-        <item
-            android:id="@+id/emotion"
-            android:title="情感" />
-        <item
             android:id="@+id/social"
             android:title="社会" />
+        <item
+            android:id="@+id/music"
+            android:title="音乐" />
+        <item
+            android:id="@+id/movie"
+            android:title="影视" />
+        <item
+            android:id="@+id/art"
+            android:title="文史哲" />
+        <item
+            android:id="@+id/life"
+            android:title="人生经验" />
     </group>
     <group android:id="@+id/my_related">
         <item

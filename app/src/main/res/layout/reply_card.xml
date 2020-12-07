@@ -6,7 +6,7 @@
 
         <variable
             name="reply"
-            type="personal.wuqing.anonymous.Reply" />
+            type="org.wkfg.anonymous.Reply" />
     </data>
 
     <com.google.android.material.card.MaterialCardView

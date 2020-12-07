@@ -1,4 +1,4 @@
-package personal.wuqing.anonymous
+package org.wkfg.anonymous
 
 import android.content.Context
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -11,7 +11,7 @@ import kotlin.random.Random
 import kotlin.time.ExperimentalTime
 
 object Network {
-    private const val IP = "172.81.215.104"
+    private const val IP = "182.254.145.254"
     private const val PORT = 8080
     var token = ""
     private fun connect(data: JSONObject) = Socket().use {
@@ -233,5 +233,19 @@ object Network {
 
     suspend fun cancelTag(id: String) = withContext(Dispatchers.IO) {
         getData(op = "i_2") { true }
+    }
+
+    enum class UpgradeStatus {
+        MUST, NEED, NO,
+    }
+
+    suspend fun checkVersion(current: Int) = withContext(Dispatchers.IO) {
+        getData(op = "g", p1 = "android", p2 = current.toString(), checkLogin = false) {
+            when {
+                optInt("MustUpdate") == 1 -> UpgradeStatus.MUST
+                optInt("NeedUpdate") == 1 -> UpgradeStatus.NEED
+                else -> UpgradeStatus.NO
+            } to optString("UpdateUrl", "https://github.com/wu-qing-157/Anonymous")
+        }
     }
 }

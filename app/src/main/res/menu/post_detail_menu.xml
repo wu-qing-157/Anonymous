@@ -27,6 +27,6 @@
 
     <item
         android:id="@+id/tag"
-        android:title="标记"
+        android:title="建议标签"
         app:showAsAction="never" />
 </menu>

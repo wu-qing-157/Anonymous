@@ -1,7 +1,9 @@
-package personal.wuqing.anonymous
+package org.wkfg.anonymous
 
 import android.app.ActivityOptions
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Bundle
 import android.transition.*
 import android.view.*
@@ -19,12 +21,13 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.SimpleItemAnimator
 import com.google.android.material.button.MaterialButton
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
 import com.google.android.material.transition.platform.*
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import personal.wuqing.anonymous.databinding.ActivityMainBinding
-import personal.wuqing.anonymous.databinding.PostCardBinding
+import org.wkfg.anonymous.databinding.ActivityMainBinding
+import org.wkfg.anonymous.databinding.PostCardBinding
 import java.util.*
 import kotlin.time.ExperimentalTime
 
@@ -39,16 +42,19 @@ class MainActivity : AppCompatActivity() {
         val filterMap = mapOf(
             R.id.all to PostListViewModel.Category.ALL,
             R.id.hot to PostListViewModel.Category.HOT,
-            R.id.campus to PostListViewModel.Category.SPORTS,
-            R.id.music to PostListViewModel.Category.MUSIC,
-            R.id.science to PostListViewModel.Category.SCIENCE,
-            R.id.it to PostListViewModel.Category.IT,
+            R.id.campus to PostListViewModel.Category.CAMPUS,
             R.id.entertain to PostListViewModel.Category.ENTERTAIN,
             R.id.emotion to PostListViewModel.Category.EMOTION,
+            R.id.science to PostListViewModel.Category.SCIENCE,
+            R.id.it to PostListViewModel.Category.IT,
             R.id.social to PostListViewModel.Category.SOCIAL,
+            R.id.music to PostListViewModel.Category.MUSIC,
+            R.id.movie to PostListViewModel.Category.MOVIE,
+            R.id.art to PostListViewModel.Category.ART,
+            R.id.life to PostListViewModel.Category.LIFE,
             R.id.my to PostListViewModel.Category.MY,
             R.id.unread to PostListViewModel.Category.UNREAD,
-            R.id.my_favorite to PostListViewModel.Category.FAVOUR,
+            R.id.my_favorite to PostListViewModel.Category.FAVOR,
         )
     }
 
@@ -110,11 +116,69 @@ class MainActivity : AppCompatActivity() {
         loadToken()
         model.viewModelScope.launch {
             try {
+                packageManager.getApplicationInfo("com.xuexiang.templateproject", 0)
+                MaterialAlertDialogBuilder(this@MainActivity).apply {
+                    setTitle("更新成功")
+                    setMessage("由于技术原因，本次更新没有覆盖旧版，烦请点击以下按钮卸载旧版无可奉告。")
+                    setPositiveButton("卸载旧版无可奉告") { _, _ ->
+                        startActivity(
+                            Intent(
+                                Intent.ACTION_DELETE,
+                                Uri.parse("package:com.xuexiang.templateproject")
+                            )
+                        )
+                    }
+                    setCancelable(false)
+                    show()
+                }
+            } catch (e: PackageManager.NameNotFoundException) {
+                // do nothing
+            }
+        }
+        model.viewModelScope.launch {
+            try {
                 Network.verifyToken()
             } catch (e: Network.NotLoggedInException) {
                 needLogin()
             } catch (e: Exception) {
                 model.info.value = "网络错误"
+            }
+            try {
+                val (status, url) = Network.checkVersion(BuildConfig.VERSION_CODE)
+                when (status) {
+                    Network.UpgradeStatus.MUST ->
+                        MaterialAlertDialogBuilder(this@MainActivity).apply {
+                            setTitle("必须更新无可奉告才能使用")
+                            setMessage("请更新无可奉告，否则可能会遇到严重的问题，点击 好的 将直接开始下载。")
+                            setPositiveButton("好的") { _, _ -> launchCustomTab(Uri.parse(url)) }
+                            setNegativeButton("一会再更新") { _, _ -> finish() }
+                            setCancelable(false)
+                            show()
+                        }
+                    Network.UpgradeStatus.NEED ->
+                        if (BuildConfig.VERSION_CODE.toString() !in
+                            getSharedPreferences("skip_version", MODE_PRIVATE)
+                        )
+                            MaterialAlertDialogBuilder(this@MainActivity).apply {
+                                setTitle("无可奉告有更新")
+                                setMessage("更新无可奉告来体验新功能，点击 好的 将直接开始下载。")
+                                setPositiveButton("好的") { _, _ -> launchCustomTab(Uri.parse(url)) }
+                                setNeutralButton("下次打开时再提醒我", null)
+                                setNegativeButton("该版本不再提醒") { _, _ ->
+                                    with(
+                                        getSharedPreferences("skip_version", MODE_PRIVATE).edit()
+                                    ) {
+                                        putBoolean(BuildConfig.VERSION_CODE.toString(), true)
+                                        apply()
+                                    }
+                                }
+                                setCancelable(false)
+                                show()
+                            }
+                    Network.UpgradeStatus.NO -> Unit
+                }
+            } catch (e: Exception) {
+                model.info.value = "检查更新时遇到网络错误"
             }
         }
         val adapter = PostAdapter(
@@ -127,6 +191,7 @@ class MainActivity : AppCompatActivity() {
                                     notifyItemChanged(it, post!!.copy(expanded = true))
                                 }
                         }
+                        model.list.value?.firstOrNull { it.id == post?.id }?.expanded = true
                     } else openDetail(this)
                 }
             },
@@ -225,12 +290,6 @@ class MainActivity : AppCompatActivity() {
                 delay(500)
                 model.refresh(this@MainActivity)
             }
-            true
-        }
-        R.id.logout -> {
-            clearToken()
-            needLogin()
-            model.list.value = listOf()
             true
         }
         R.id.settings -> {

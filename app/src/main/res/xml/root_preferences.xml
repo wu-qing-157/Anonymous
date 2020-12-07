@@ -12,7 +12,7 @@
         app:title="过滤">
         <ListPreference
             app:defaultValue="fold"
-            app:dialogTitle="是否折叠踩大于赞的帖子和回复"
+            app:dialogTitle="是否折叠踩比赞多 5 个以上的帖子和回复"
             app:entries="@array/fold_summary"
             app:entryValues="@array/fold_entry"
             app:key="fold_thumb_down"

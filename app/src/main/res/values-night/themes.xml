@@ -11,7 +11,13 @@
         <item name="colorOnSecondary">@color/black</item>
         <!-- Status bar color. -->
         <item name="android:statusBarColor" tools:targetApi="l">?attr/colorPrimary</item>
-        <item name="android:navigationBarColor" tools:targetApi="l">?attr/colorPrimary</item>
+        <item name="actionBarStyle">@style/ActionBarColorPrimary</item>
         <!-- Customize your theme here. -->
+        <item name="android:textColorSecondary">#777</item>
+    </style>
+
+    <style name="ActionBarColorPrimary" parent="Widget.MaterialComponents.ActionBar.Surface">
+        <item name="background">?colorPrimary</item>
+        <item name="android:textColor">?colorOnPrimary</item>
     </style>
 </resources>

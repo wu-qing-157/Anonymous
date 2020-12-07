@@ -1,4 +1,4 @@
-package personal.wuqing.anonymous
+package org.wkfg.anonymous
 
 import android.app.Activity
 import android.content.Context
@@ -27,10 +27,10 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.json.JSONObject
-import personal.wuqing.anonymous.databinding.PostCardBinding
-import personal.wuqing.anonymous.databinding.RecycleBottomBinding
-import personal.wuqing.anonymous.databinding.ReplyCardBinding
-import personal.wuqing.anonymous.databinding.ReplySortBinding
+import org.wkfg.anonymous.databinding.PostCardBinding
+import org.wkfg.anonymous.databinding.RecycleBottomBinding
+import org.wkfg.anonymous.databinding.ReplyCardBinding
+import org.wkfg.anonymous.databinding.ReplySortBinding
 import java.io.Serializable
 import kotlin.time.ExperimentalTime
 
@@ -41,7 +41,7 @@ object ReplyListOrder : ReplyListElem()
 object ReplyListBottom : ReplyListElem()
 
 data class Reply constructor(
-    val expanded: Boolean,
+    var expanded: Boolean,
     val id: String,
     val update: String,
     val name: String,
@@ -97,9 +97,7 @@ data class Reply constructor(
             data
         } else TypedValue().run {
             context.theme.resolveAttribute(android.R.attr.textColorSecondary, this, true)
-            data.toString(16).padStart(3, '0').toCharArray()
-                .joinToString("", prefix = "ff") { "$it$it" }
-                .toUInt(16).toInt()
+            data
         }
     )
 
@@ -229,7 +227,7 @@ object ReplyDiffCallback : DiffUtil.ItemCallback<ReplyListElem>() {
 fun CardView.magic(reply: Reply) {
     val binding = DataBindingUtil.getBinding<ReplyCardBinding>(this)!!
     val context = context
-    val folded = !reply.expanded && reply.likeCount < 0 &&
+    val folded = !reply.expanded && reply.likeCount <= -5 &&
             PreferenceManager.getDefaultSharedPreferences(context)
                 .getString("fold_thumb_down", "fold") == "fold"
     binding.expanded.visibility = if (folded) View.GONE else View.VISIBLE
@@ -299,14 +297,15 @@ class ReplyListViewModel : ViewModel() {
             try {
                 val tot = mutableListOf<Reply>()
                 last = "NULL"
-                while (tot.size < 8) {
+                for (rep in 1..5) {
+                    if (tot.size >= 8) break
                     val (pair, newList) = Network.fetchReply(postId, sort, last)
                     val (last, newPost) = pair
                     this@ReplyListViewModel.last = last
                     post.value = newPost
                     if (newList.isEmpty()) break
                     tot.addAll(newList.filter {
-                        it.likeCount >= 0 || PreferenceManager.getDefaultSharedPreferences(context)
+                        it.likeCount > -5 || PreferenceManager.getDefaultSharedPreferences(context)
                             .getString("fold_thumb_down", "fold") != "hide"
                     })
                 }
@@ -336,7 +335,8 @@ class ReplyListViewModel : ViewModel() {
                 bottom.value = BottomStatus.REFRESHING
                 delay(300)
                 var newCount = 0
-                while (newCount < 8) {
+                for (rep in 1..5) {
+                    if (newCount >= 8) break
                     val (pair, newList) = Network.fetchReply(postId, sort, last)
                     val (last, newPost) = pair
                     this@ReplyListViewModel.last = last
