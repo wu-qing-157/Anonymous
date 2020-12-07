@@ -11,8 +11,8 @@ android {
         applicationId "org.wkfg.anonymous"
         minSdkVersion 23
         targetSdkVersion 30
-        versionCode 13
-        versionName "2.0.3"
+        versionCode 15
+        versionName "2.0.4-beta.1"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }

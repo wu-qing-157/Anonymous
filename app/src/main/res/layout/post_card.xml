@@ -98,9 +98,9 @@
 
                                 <TextView
                                     android:id="@+id/dot"
-                                    android:layout_gravity="center"
                                     android:layout_width="3dp"
                                     android:layout_height="3dp"
+                                    android:layout_gravity="center"
                                     android:layout_marginHorizontal="5dp"
                                     android:background="@drawable/ic_circle"
                                     android:backgroundTint="?android:attr/textColorSecondary"
@@ -238,9 +238,9 @@
                     android:textColor="?android:attr/textColorSecondary" />
 
                 <TextView
-                    android:layout_gravity="center"
                     android:layout_width="3dp"
                     android:layout_height="3dp"
+                    android:layout_gravity="center"
                     android:layout_marginHorizontal="5dp"
                     android:background="@drawable/ic_circle"
                     android:backgroundTint="?android:attr/textColorSecondary" />
@@ -248,12 +248,13 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="已折叠" />
+                    android:text="已折叠"
+                    android:textColor="?android:attr/textColorSecondary" />
 
                 <TextView
-                    android:layout_gravity="center"
                     android:layout_width="3dp"
                     android:layout_height="3dp"
+                    android:layout_gravity="center"
                     android:layout_marginHorizontal="5dp"
                     android:background="@drawable/ic_circle"
                     android:backgroundTint="?android:attr/textColorSecondary" />

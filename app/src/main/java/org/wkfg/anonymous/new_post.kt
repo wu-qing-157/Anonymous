@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
+import android.util.TypedValue
 import android.view.*
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
@@ -179,7 +180,10 @@ class NewPostActivity : AppCompatActivity() {
             addTarget(android.R.id.content)
             isElevationShadowEnabled = false
             startContainerColor = Color.TRANSPARENT
-            containerColor = Color.WHITE
+            containerColor = TypedValue().run {
+                theme.resolveAttribute(R.attr.colorSurface, this, true)
+                data
+            }
             fadeMode = MaterialContainerTransform.FADE_MODE_THROUGH
             duration = 400L
             window.sharedElementEnterTransition = this
