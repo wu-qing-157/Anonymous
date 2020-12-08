@@ -2,5 +2,6 @@
 <resources>
     <declare-styleable name="Theme">
         <attr name="cardListBackground" format="color" />
+        <attr name="fabStyle" format="reference" />
     </declare-styleable>
 </resources>

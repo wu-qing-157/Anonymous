@@ -1,5 +1,6 @@
 package org.wkfg.anonymous
 
+import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.text.SpannableString
@@ -9,6 +10,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.preference.ListPreference
 import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
+import androidx.preference.SwitchPreference
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 
 class SettingsActivity : AppCompatActivity() {
@@ -20,7 +22,7 @@ class SettingsActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         applyTheme()
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.settings_activity)
+        setContentView(R.layout.activity_settings)
         if (savedInstanceState == null) {
             supportFragmentManager
                 .beginTransaction()
@@ -42,6 +44,24 @@ class SettingsActivity : AppCompatActivity() {
     class SettingsFragment : PreferenceFragmentCompat() {
         override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
             setPreferencesFromResource(R.xml.root_preferences, rootKey)
+            findPreference<Preference>("contact")?.setOnPreferenceClickListener {
+                MaterialAlertDialogBuilder(requireContext()).apply {
+                    setTitle("联系团队")
+                    setItems(arrayOf("复制邮件地址", "发送邮件")) { _, i ->
+                        when (i) {
+                            0 -> copy(requireContext(), it.summary.toString())
+                            1 -> startActivity(
+                                Intent(
+                                    Intent.ACTION_VIEW,
+                                    Uri.parse("mailto:${it.summary}")
+                                )
+                            )
+                        }
+                    }
+                    show()
+                }
+                true
+            }
             findPreference<Preference>("zen")?.setOnPreferenceClickListener {
                 MaterialAlertDialogBuilder(requireContext()).apply {
                     setTitle("The Zen of WKFG, by T. He")
@@ -117,6 +137,10 @@ class SettingsActivity : AppCompatActivity() {
                     requireActivity().recreate()
                     true
                 }
+            }
+            findPreference<SwitchPreference>("toolbar")?.setOnPreferenceChangeListener { _, _ ->
+                requireActivity().recreate()
+                true
             }
         }
     }

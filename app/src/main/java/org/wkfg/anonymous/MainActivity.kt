@@ -1,5 +1,7 @@
 package org.wkfg.anonymous
 
+import android.animation.Animator
+import android.animation.AnimatorListenerAdapter
 import android.app.ActivityOptions
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -235,10 +237,49 @@ class MainActivity : AppCompatActivity() {
                             findLastVisibleItemPosition() >= itemCount - 2
                         }
                     ) model.more(context)
+                    if (newState == RecyclerView.SCROLL_STATE_IDLE) {
+                        val top = with(recyclerView.layoutManager as LinearLayoutManager) {
+                            findFirstCompletelyVisibleItemPosition() == 0
+                        }
+                        if (top) {
+                            if (binding.refresh.alpha != 0F) {
+                                binding.refresh.clearAnimation()
+                                binding.refresh.animate().apply {
+                                    alpha(0F)
+                                    duration =
+                                        resources.getInteger(android.R.integer.config_shortAnimTime)
+                                            .toLong()
+                                    setListener(object : AnimatorListenerAdapter() {
+                                        override fun onAnimationEnd(animation: Animator?) {
+                                            binding.refresh.visibility = View.INVISIBLE
+                                        }
+                                    })
+                                }.start()
+                            }
+                        } else {
+                            if (binding.refresh.alpha != 1F) {
+                                binding.refresh.visibility = View.VISIBLE
+                                binding.refresh.clearAnimation()
+                                binding.refresh.animate().apply {
+                                    alpha(1F)
+                                    duration =
+                                        resources.getInteger(android.R.integer.config_shortAnimTime)
+                                            .toLong()
+                                }
+                            }
+                        }
+                    }
                 }
             })
         }
-        binding.swipeRefresh.apply { setOnRefreshListener { model.refresh(this@MainActivity) } }
+        binding.swipeRefresh.setOnRefreshListener { model.refresh(this@MainActivity) }
+        binding.refresh.setOnClickListener {
+            binding.recycle.smoothScrollToPosition(0)
+            model.viewModelScope.launch {
+                delay(500)
+                model.refresh(this@MainActivity)
+            }
+        }
 
         model.list.observe(this) {
             adapter.submitList(listOf(PostListFilter) + it + PostListBottom)
@@ -274,26 +315,10 @@ class MainActivity : AppCompatActivity() {
                 // TODO: search bar transition
             }
         }
-        binding.recycle.addOnScrollListener(object : RecyclerView.OnScrollListener() {
-            override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
-                menu.findItem(R.id.refresh).isVisible =
-                    with(recyclerView.layoutManager as LinearLayoutManager) {
-                        findFirstCompletelyVisibleItemPosition() > 0
-                    }
-            }
-        })
     }
 
     @ExperimentalTime
     override fun onOptionsItemSelected(item: MenuItem) = when (item.itemId) {
-        R.id.refresh -> {
-            binding.recycle.smoothScrollToPosition(0)
-            model.viewModelScope.launch {
-                delay(500)
-                model.refresh(this@MainActivity)
-            }
-            true
-        }
         R.id.settings -> {
             startActivityForResult(Intent(this, SettingsActivity::class.java), SETTINGS)
             true

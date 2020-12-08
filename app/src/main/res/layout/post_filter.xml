@@ -17,7 +17,7 @@
             android:layout_marginHorizontal="16dp"
             android:layout_marginTop="2dp"
             android:minWidth="0dp"
-            android:text="所有帖子"
+            android:text="主干道"
             android:textAlignment="textEnd"
             android:textColor="?android:attr/textColorSecondary"
             app:icon="@drawable/ic_category"

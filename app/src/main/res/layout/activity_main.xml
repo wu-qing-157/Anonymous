@@ -17,10 +17,10 @@
 
             <com.google.android.material.appbar.MaterialToolbar
                 android:id="@+id/toolbar"
-                style="@style/Widget.MaterialComponents.Toolbar.Primary"
+                style="?toolbarStyle"
                 android:layout_width="match_parent"
-                android:transitionGroup="true"
                 android:layout_height="?attr/actionBarSize"
+                android:transitionGroup="true"
                 app:layout_scrollFlags="scroll|enterAlways|snap"
                 app:popupTheme="@style/Theme.Anonymous.PopupOverlay" />
 
@@ -42,6 +42,20 @@
         </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 
         <com.google.android.material.floatingactionbutton.FloatingActionButton
+            style="@style/FloatingActionButtonSurface"
+            android:id="@+id/refresh"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|end"
+            android:layout_marginEnd="16dp"
+            android:layout_marginBottom="88dp"
+            android:alpha="0"
+            android:visibility="invisible"
+            app:layout_behavior="@string/hide_bottom_view_on_scroll_behavior"
+            app:srcCompat="@drawable/ic_refresh" />
+
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            style="?attr/fabStyle"
             android:id="@+id/fab"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -49,6 +63,7 @@
             android:layout_marginEnd="@dimen/fab_margin"
             android:layout_marginBottom="@dimen/fab_margin"
             android:transitionName="bottom"
+            android:translationZ="1dp"
             app:layout_behavior="@string/hide_bottom_view_on_scroll_behavior"
             app:srcCompat="@drawable/ic_edit" />
 

@@ -60,12 +60,20 @@ val themes = mapOf(
 //    "white" to R.style.OverlayColorWhite,
 )
 
-fun Context.applyTheme() {
+fun Activity.applyTheme() {
+    theme.applyStyle(
+        if (PreferenceManager.getDefaultSharedPreferences(this).getBoolean("toolbar", false))
+            R.style.OverlayToolbarStyleSurface else R.style.OverlayToolbarStylePrimary, true
+    )
     theme.applyStyle(
         themes[PreferenceManager.getDefaultSharedPreferences(this).getString("color", "default")]
             ?: R.style.OverlayColorDefault,
         true
     )
+    window.statusBarColor = TypedValue().run {
+        theme.resolveAttribute(android.R.attr.statusBarColor, this, true)
+        data
+    }
 }
 
 class TagSpan(
@@ -157,6 +165,7 @@ fun copy(context: Context, s: String) {
     val base = when (context) {
         is MainActivity -> context.binding.swipeRefresh
         is PostDetailActivity -> context.binding.swipeRefresh
+        is SettingsActivity -> context.findViewById<View>(R.id.settings)
         else -> error("")
     }
     Snackbar.make(base, "已复制: $s", Snackbar.LENGTH_SHORT).apply {

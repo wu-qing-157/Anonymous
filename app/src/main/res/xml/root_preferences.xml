@@ -1,10 +1,12 @@
 <PreferenceScreen xmlns:app="http://schemas.android.com/apk/res-auto">
     <PreferenceCategory app:title="主题">
         <ListPreference
-            app:entries="@array/fold_summary"
-            app:entryValues="@array/fold_entry"
             app:key="color"
             app:title="主题色" />
+        <SwitchPreference
+            app:defaultValue="false"
+            app:key="toolbar"
+            app:title="使用白色标题栏" />
     </PreferenceCategory>
 
     <PreferenceCategory
@@ -63,9 +65,15 @@
     <PreferenceCategory app:title="关于">
         <Preference
             app:key="net"
+            app:summary="http://wukefenggao.cn"
             app:title="无可奉告官网" />
         <Preference
+            app:key="contact"
+            app:summary="sjtuwkfg@163.com"
+            app:title="联系团队" />
+        <Preference
             app:key="android"
+            app:summary="https://github.com/wu-qing-157/Anonymous"
             app:title="无可奉告 Android 项目" />
         <Preference
             app:key="rule"

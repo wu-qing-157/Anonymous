@@ -197,7 +197,7 @@ data class Post constructor(
         MUSIC(7),
         MOVIE(8),
         ART(9),
-        LIFE(9),
+        LIFE(10),
     }
 }
 
