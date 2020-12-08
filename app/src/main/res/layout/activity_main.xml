@@ -12,7 +12,8 @@
             android:id="@+id/appbar"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:theme="@style/Theme.Anonymous.AppBarOverlay"
+            android:elevation="4dp"
+            android:theme="?appBarLayoutStyle"
             android:transitionName="appbar">
 
             <com.google.android.material.appbar.MaterialToolbar
@@ -42,8 +43,8 @@
         </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 
         <com.google.android.material.floatingactionbutton.FloatingActionButton
-            style="@style/FloatingActionButtonSurface"
             android:id="@+id/refresh"
+            style="@style/FloatingActionButtonSurface"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="bottom|end"
@@ -55,8 +56,8 @@
             app:srcCompat="@drawable/ic_refresh" />
 
         <com.google.android.material.floatingactionbutton.FloatingActionButton
-            style="?attr/fabStyle"
             android:id="@+id/fab"
+            style="?attr/fabStyle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="bottom|end"

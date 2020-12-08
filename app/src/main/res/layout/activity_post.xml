@@ -10,7 +10,8 @@
             android:id="@+id/appbar"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:theme="@style/Theme.Anonymous.AppBarOverlay"
+            android:elevation="4dp"
+            android:theme="?appBarLayoutStyle"
             android:transitionName="appbar">
 
             <com.google.android.material.appbar.MaterialToolbar
