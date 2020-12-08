@@ -17,11 +17,10 @@
         android:clickable="true"
         android:clipChildren="false"
         android:descendantFocusability="blocksDescendants"
-        android:elevation="0dp"
         android:focusable="true"
         android:transitionName="post"
         app:cardCornerRadius="8dp"
-        app:cardElevation="0dp"
+        app:cardElevation="?cardElevation"
         app:magic="@{post}">
 
         <androidx.coordinatorlayout.widget.CoordinatorLayout
@@ -80,7 +79,9 @@
                                 android:transitionName="title" />
 
                             <LinearLayout
-                                android:layout_width="wrap_content"
+                                android:id="@+id/caption"
+                                android:transitionName="caption"
+                                android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
                                 android:layout_marginHorizontal="2dp"
                                 android:layout_marginTop="4dp"
@@ -144,14 +145,24 @@
                         android:layout_marginTop="8dp"
                         android:layout_marginEnd="12dp"
                         android:layout_weight="1"
-                        android:maxLines="@{post.contentMaxLines()}"
                         android:text="@{post.contentWithLink(context)}"
                         android:textAppearance="?attr/textAppearanceBody2"
                         android:textColor="?android:attr/textColorPrimary"
                         android:transitionName="content" />
 
+                    <TextView
+                        android:id="@+id/unread"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:text="@{post.unread(context)}"
+                        android:textAppearance="?attr/textAppearanceSubtitle2"
+                        android:textStyle="bold"
+                        android:transitionName="unread" />
+
                     <LinearLayout
                         android:id="@+id/buttons"
+                        android:transitionGroup="true"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginVertical="2dp"

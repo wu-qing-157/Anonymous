@@ -6,6 +6,7 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
+import android.content.res.Resources
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.RectF
@@ -48,7 +49,7 @@ enum class Like {
     DISLIKE, DISLIKE_WAIT, NORMAL, LIKE_WAIT, LIKE
 }
 
-class MagicHide
+val Int.dp get() = (this * Resources.getSystem().displayMetrics.density).toInt()
 
 val themes = mapOf(
     "default" to R.style.OverlayColorDefault,

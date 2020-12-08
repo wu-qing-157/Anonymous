@@ -319,7 +319,7 @@ class ReplyListViewModel : ViewModel() {
             } catch (e: CancellationException) {
                 refresh.value = false
             } catch (e: Exception) {
-                info.value = e.stackTraceToString() //"网络错误"
+                info.value = "网络错误"
                 bottom.value = BottomStatus.NETWORK_ERROR
             } finally {
                 refresh.value = false

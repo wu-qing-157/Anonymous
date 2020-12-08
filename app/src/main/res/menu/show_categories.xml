@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
-    <group android:id="@+id/overall_category">
+    <group
+        android:id="@+id/overall_category"
+        android:checkableBehavior="single">
         <item
             android:id="@+id/all"
             android:title="主干道" />
@@ -8,7 +10,23 @@
             android:id="@+id/hot"
             android:title="热门帖子" />
     </group>
-    <group android:id="@+id/natural_category">
+
+    <group
+        android:id="@+id/my_related"
+        android:checkableBehavior="single">
+        <item
+            android:id="@+id/my"
+            android:title="我的发帖" />
+        <item
+            android:id="@+id/my_favorite"
+            android:title="我的收藏" />
+        <item
+            android:id="@+id/unread"
+            android:title="我的通知" />
+    </group>
+    <group
+        android:id="@+id/categories"
+        android:checkableBehavior="single">
         <item
             android:id="@+id/campus"
             android:title="校园" />
@@ -40,15 +58,9 @@
             android:id="@+id/life"
             android:title="人生经验" />
     </group>
-    <group android:id="@+id/my_related">
+    <group android:id="@+id/settings_group">
         <item
-            android:id="@+id/my"
-            android:title="我的发帖" />
-        <item
-            android:id="@+id/my_favorite"
-            android:title="我的收藏" />
-        <item
-            android:id="@+id/unread"
-            android:title="未读回复" />
+            android:id="@+id/settings"
+            android:title="设置" />
     </group>
 </menu>

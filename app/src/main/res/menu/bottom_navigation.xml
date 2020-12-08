@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/all"
+        android:icon="@drawable/ic_home"
+        android:title="首页" />
+    <item
+        android:id="@+id/hot"
+        android:icon="@drawable/ic_whatshot"
+        android:title="热门" />
+    <item
+        android:id="@+id/unread"
+        android:icon="@drawable/ic_notifications_none"
+        android:title="通知" />
+</menu>

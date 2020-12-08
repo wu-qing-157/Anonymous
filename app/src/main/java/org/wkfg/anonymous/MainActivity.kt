@@ -9,16 +9,18 @@ import android.net.Uri
 import android.os.Bundle
 import android.transition.*
 import android.view.*
-import android.view.animation.AccelerateInterpolator
-import android.view.animation.DecelerateInterpolator
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.PopupMenu
 import androidx.appcompat.widget.SearchView
+import androidx.coordinatorlayout.widget.CoordinatorLayout
 import androidx.core.app.SharedElementCallback
 import androidx.core.view.MenuCompat
+import androidx.core.view.updateMarginsRelative
 import androidx.databinding.DataBindingUtil
+import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewModelScope
+import androidx.preference.PreferenceManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.SimpleItemAnimator
@@ -58,6 +60,7 @@ class MainActivity : AppCompatActivity() {
             R.id.unread to PostListViewModel.Category.UNREAD,
             R.id.my_favorite to PostListViewModel.Category.FAVOR,
         )
+        val filterMapReversed = filterMap.map { (a, b) -> b to a }.toMap()
     }
 
     private fun openDetail(post: PostCardBinding) {
@@ -65,7 +68,7 @@ class MainActivity : AppCompatActivity() {
         val options = ActivityOptions.makeSceneTransitionAnimation(
             this, *post.run {
                 listOf(
-                    root, id, update, dot, binding.fab,
+                    root, binding.fab, title, caption,
                     findViewById(android.R.id.statusBarBackground), binding.appbar,
                 ).map { it.pair() }.toTypedArray()
             }
@@ -76,10 +79,10 @@ class MainActivity : AppCompatActivity() {
         } ?: -1)
         setExitSharedElementCallback(null as SharedElementCallback?)
         window.exitTransition = Slide(Gravity.START).apply {
-            interpolator = AccelerateInterpolator()
+//            interpolator = AccelerateInterpolator()
         }
         window.reenterTransition = Slide(Gravity.START).apply {
-            interpolator = DecelerateInterpolator()
+//            interpolator = DecelerateInterpolator()
         }
         startActivityForResult(intent, POST_DETAIL, options.toBundle())
     }
@@ -102,7 +105,7 @@ class MainActivity : AppCompatActivity() {
             menuInflater.inflate(R.menu.show_categories, menu)
             setOnMenuItemClickListener {
                 button.text = it.title
-                model.category = filterMap[it.itemId] ?: error("")
+                model.category.value = filterMap[it.itemId] ?: error("")
                 dismiss()
                 model.refresh(this@MainActivity)
                 true
@@ -111,78 +114,86 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun verifyToken() = lifecycleScope.launch {
+        try {
+            Network.verifyToken()
+        } catch (e: Network.NotLoggedInException) {
+            needLogin()
+        } catch (e: Exception) {
+            model.info.value = "网络错误"
+        }
+    }
+
+    private fun checkUpdate() = lifecycleScope.launch {
+        try {
+            val (status, url) = Network.checkVersion(BuildConfig.VERSION_CODE)
+            when (status) {
+                Network.UpgradeStatus.MUST ->
+                    MaterialAlertDialogBuilder(this@MainActivity).apply {
+                        setTitle("必须更新无可奉告才能使用")
+                        setMessage("请更新无可奉告，否则可能会遇到严重的问题，点击 好的 将直接开始下载。")
+                        setPositiveButton("好的") { _, _ -> launchCustomTab(Uri.parse(url)) }
+                        setNegativeButton("一会再更新") { _, _ -> finish() }
+                        setCancelable(false)
+                        show()
+                    }
+                Network.UpgradeStatus.NEED ->
+                    if (BuildConfig.VERSION_CODE.toString() !in
+                        getSharedPreferences("skip_version", MODE_PRIVATE)
+                    )
+                        MaterialAlertDialogBuilder(this@MainActivity).apply {
+                            setTitle("无可奉告有更新")
+                            setMessage("更新无可奉告来体验新功能，点击 好的 将直接开始下载。")
+                            setPositiveButton("好的") { _, _ -> launchCustomTab(Uri.parse(url)) }
+                            setNeutralButton("下次打开时再提醒我", null)
+                            setNegativeButton("下次重大更新前不再提醒") { _, _ ->
+                                with(
+                                    getSharedPreferences("skip_version", MODE_PRIVATE).edit()
+                                ) {
+                                    putBoolean(BuildConfig.VERSION_CODE.toString(), true)
+                                    apply()
+                                }
+                            }
+                            setCancelable(false)
+                            show()
+                        }
+                Network.UpgradeStatus.NO -> Unit
+            }
+        } catch (e: Exception) {
+            model.info.value = "检查更新时遇到网络错误"
+        }
+    }
+
+    private fun removeOld() = lifecycleScope.launch {
+        try {
+            packageManager.getApplicationInfo("com.xuexiang.templateproject", 0)
+            MaterialAlertDialogBuilder(this@MainActivity).apply {
+                setTitle("更新成功")
+                setMessage("由于技术原因，本次更新没有覆盖旧版，烦请点击以下按钮卸载旧版无可奉告。")
+                setPositiveButton("卸载旧版无可奉告") { _, _ ->
+                    startActivity(
+                        Intent(
+                            Intent.ACTION_DELETE,
+                            Uri.parse("package:com.xuexiang.templateproject")
+                        )
+                    )
+                }
+                setCancelable(false)
+                show()
+            }
+        } catch (e: PackageManager.NameNotFoundException) {
+            // do nothing
+        }
+    }
+
     @ExperimentalTime
     override fun onCreate(savedInstanceState: Bundle?) {
         applyTheme()
         super.onCreate(savedInstanceState)
         loadToken()
-        model.viewModelScope.launch {
-            try {
-                packageManager.getApplicationInfo("com.xuexiang.templateproject", 0)
-                MaterialAlertDialogBuilder(this@MainActivity).apply {
-                    setTitle("更新成功")
-                    setMessage("由于技术原因，本次更新没有覆盖旧版，烦请点击以下按钮卸载旧版无可奉告。")
-                    setPositiveButton("卸载旧版无可奉告") { _, _ ->
-                        startActivity(
-                            Intent(
-                                Intent.ACTION_DELETE,
-                                Uri.parse("package:com.xuexiang.templateproject")
-                            )
-                        )
-                    }
-                    setCancelable(false)
-                    show()
-                }
-            } catch (e: PackageManager.NameNotFoundException) {
-                // do nothing
-            }
-        }
-        model.viewModelScope.launch {
-            try {
-                Network.verifyToken()
-            } catch (e: Network.NotLoggedInException) {
-                needLogin()
-            } catch (e: Exception) {
-                model.info.value = "网络错误"
-            }
-            try {
-                val (status, url) = Network.checkVersion(BuildConfig.VERSION_CODE)
-                when (status) {
-                    Network.UpgradeStatus.MUST ->
-                        MaterialAlertDialogBuilder(this@MainActivity).apply {
-                            setTitle("必须更新无可奉告才能使用")
-                            setMessage("请更新无可奉告，否则可能会遇到严重的问题，点击 好的 将直接开始下载。")
-                            setPositiveButton("好的") { _, _ -> launchCustomTab(Uri.parse(url)) }
-                            setNegativeButton("一会再更新") { _, _ -> finish() }
-                            setCancelable(false)
-                            show()
-                        }
-                    Network.UpgradeStatus.NEED ->
-                        if (BuildConfig.VERSION_CODE.toString() !in
-                            getSharedPreferences("skip_version", MODE_PRIVATE)
-                        )
-                            MaterialAlertDialogBuilder(this@MainActivity).apply {
-                                setTitle("无可奉告有更新")
-                                setMessage("更新无可奉告来体验新功能，点击 好的 将直接开始下载。")
-                                setPositiveButton("好的") { _, _ -> launchCustomTab(Uri.parse(url)) }
-                                setNeutralButton("下次打开时再提醒我", null)
-                                setNegativeButton("下次重大更新前不再提醒") { _, _ ->
-                                    with(
-                                        getSharedPreferences("skip_version", MODE_PRIVATE).edit()
-                                    ) {
-                                        putBoolean(BuildConfig.VERSION_CODE.toString(), true)
-                                        apply()
-                                    }
-                                }
-                                setCancelable(false)
-                                show()
-                            }
-                    Network.UpgradeStatus.NO -> Unit
-                }
-            } catch (e: Exception) {
-                model.info.value = "检查更新时遇到网络错误"
-            }
-        }
+        verifyToken()
+        checkUpdate()
+        removeOld()
         val adapter = PostAdapter(
             postInit = {
                 root.setOnClickListener {
@@ -224,7 +235,18 @@ class MainActivity : AppCompatActivity() {
 
         binding = DataBindingUtil.setContentView(this, R.layout.activity_main)
         setSupportActionBar(binding.toolbar)
+        supportActionBar!!.title = model.category.value!!.display
+        binding.toolbar.apply { setNavigationOnClickListener { binding.drawer.open() } }
         binding.fab.setOnClickListener { openNewPost() }
+        val useBottomNav = PreferenceManager.getDefaultSharedPreferences(this)
+            .getBoolean("bottom", true)
+        if (!useBottomNav) {
+            binding.bottomNav.visibility = View.GONE
+            (binding.fab.layoutParams as CoordinatorLayout.LayoutParams)
+                .updateMarginsRelative(bottom = 16.dp)
+            (binding.refresh.layoutParams as CoordinatorLayout.LayoutParams)
+                .updateMarginsRelative(bottom = 88.dp)
+        }
         binding.recycle.apply {
             layoutManager = LinearLayoutManager(this@MainActivity)
             this.adapter = adapter
@@ -237,7 +259,7 @@ class MainActivity : AppCompatActivity() {
                             findLastVisibleItemPosition() >= itemCount - 2
                         }
                     ) model.more(context)
-                    if (newState == RecyclerView.SCROLL_STATE_IDLE) {
+                    if (!useBottomNav && newState == RecyclerView.SCROLL_STATE_IDLE) {
                         val top = with(recyclerView.layoutManager as LinearLayoutManager) {
                             findFirstCompletelyVisibleItemPosition() == 0
                         }
@@ -282,7 +304,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         model.list.observe(this) {
-            adapter.submitList(listOf(PostListFilter) + it + PostListBottom)
+            adapter.submitList(it + PostListBottom)
         }
         model.refresh.observe(this) { binding.swipeRefresh.isRefreshing = it }
         model.info.observe(this) {
@@ -291,9 +313,63 @@ class MainActivity : AppCompatActivity() {
                 model.info.value = ""
             }
         }
-        model.search.observe(this) { it?.let { model.refresh(this) } }
+        model.search.observe(this) {
+            it?.let {
+                adapter.submitList(listOf())
+                model.refresh(this)
+            }
+        }
+        var recreateRefresh = savedInstanceState?.getBoolean("recreate") == true
+        model.category.observe(this) {
+            binding.toolbar.title = it.display
+            model.updateNav = true
+            binding.drawerNav.setCheckedItem(filterMapReversed[it] ?: error(""))
+            binding.bottomNav.selectedItemId =
+                if (it in model.bottomCategory) filterMapReversed[it] ?: error("") else R.id.all
+            model.updateNav = false
+            if (recreateRefresh) recreateRefresh = false
+            else {
+                adapter.submitList(listOf())
+                model.refresh(this)
+            }
+        }
 
-        model.more(this)
+        binding.bottomNav.setOnNavigationItemSelectedListener {
+            if (!model.updateNav) model.category.value = filterMap[it.itemId]
+            true
+        }
+        binding.bottomNav.setOnNavigationItemReselectedListener {
+            if (!model.updateNav) {
+                binding.recycle.smoothScrollToPosition(0)
+                model.viewModelScope.launch {
+                    delay(500)
+                    model.refresh(this@MainActivity)
+                }
+            }
+        }
+        binding.drawerNav.menu.setGroupVisible(R.id.category, false)
+        binding.drawerNav.setNavigationItemSelectedListener {
+            when (it.itemId) {
+                R.id.settings -> {
+                    startActivityForResult(Intent(this, SettingsActivity::class.java), SETTINGS)
+                    binding.drawer.close()
+                    false
+                }
+                else -> {
+                    if (!model.updateNav && model.category.value != filterMap[it.itemId])
+                        model.category.value = filterMap[it.itemId]
+                    binding.drawer.close()
+                    true
+                }
+            }
+        }
+
+        if (savedInstanceState?.getBoolean("recreate") != true) model.more(this)
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putBoolean("recreate", true)
     }
 
     override fun onCreateOptionsMenu(menu: Menu) = true.also {
@@ -328,10 +404,17 @@ class MainActivity : AppCompatActivity() {
 
     override fun onActivityReenter(resultCode: Int, data: Intent?) {
         if (resultCode == RESULT_OK) (data?.getSerializableExtra("post") as? Post)?.apply {
-            data.getIntExtra("position", 0).takeIf { it > 0 }?.let {
-                binding.recycle.adapter?.notifyItemChanged(
-                    it, copy(showInDetail = false, expanded = true, like = Like.LIKE_WAIT)
-                )
+            with(binding.recycle.adapter as PostAdapter) {
+                currentList.indexOfFirst { it is Post && it.id == id }.takeIf { it >= 0 }?.let {
+                    notifyItemChanged(it, copy(
+                        showInDetail = false,
+                        expanded = true,
+                        like = (currentList[it] as Post).like.takeIf { l -> l == Like.LIKE_WAIT }
+                            ?: like,
+                        unread = false,
+                        notification = (currentList[it] as Post).notification,
+                    ))
+                }
             }
         }
     }

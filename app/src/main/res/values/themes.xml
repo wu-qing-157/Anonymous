@@ -6,13 +6,18 @@
         <item name="colorOnPrimary">@color/white</item>
         <item name="colorSecondary">@color/teal_200</item>
         <item name="colorSecondaryVariant">@color/teal_700</item>
-        <item name="colorOnSecondary">@color/black</item>
-        <item name="toolbarStyle">@style/Widget.MaterialComponents.Toolbar.Primary</item>
+        <item name="colorOnSecondary">@color/white</item>
+        <item name="colorSurface">@color/white</item>
+        <item name="toolbarStyle">@style/Widget.MaterialComponents.Toolbar.PrimarySurface</item>
         <item name="appBarLayoutStyle">@style/ThemeOverlay.AppCompat.Dark.ActionBar</item>
         <item name="android:windowActivityTransitions">true</item>
-        <item name="android:textColorSecondary">#777</item>
-        <item name="android:listPreferredItemHeightSmall">42dp</item>
+        <item name="android:textColorSecondary">@color/textColorSecondary</item>
+        <!--        <item name="android:listPreferredItemHeightSmall">42dp</item>-->
         <item name="cardListBackground">#eee</item>
+        <item name="bottomNavigationStyle">
+            @style/Widget.MaterialComponents.BottomNavigationView.PrimarySurface
+        </item>
+        <item name="cardElevation">0dp</item>
     </style>
 
     <style name="Theme.Anonymous.NoActionBar">
@@ -47,7 +52,7 @@
         <item name="android:statusBarColor">?colorPrimary</item>
         <item name="android:windowLightStatusBar">false</item>
         <item name="fabStyle">@style/Widget.MaterialComponents.FloatingActionButton</item>
-        <item name="toolbarStyle">@style/Widget.MaterialComponents.Toolbar.Primary</item>
+        <item name="toolbarStyle">@style/Widget.MaterialComponents.Toolbar.PrimarySurface</item>
         <item name="appBarLayoutStyle">@style/ThemeOverlay.AppCompat.Dark.ActionBar</item>
     </style>
 

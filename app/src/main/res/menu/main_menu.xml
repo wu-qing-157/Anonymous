@@ -8,9 +8,4 @@
         android:title="搜索"
         app:actionViewClass="androidx.appcompat.widget.SearchView"
         app:showAsAction="ifRoom|collapseActionView" />
-
-    <item
-        android:id="@+id/settings"
-        android:title="设置"
-        app:showAsAction="never" />
 </menu>
