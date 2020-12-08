@@ -132,15 +132,15 @@ data class Post constructor(
 
     fun unread(context: Context): CharSequence = SpannableStringBuilder().apply {
         if (notification != null) {
-            append("$notification", ForegroundColorSpan(TypedValue().run {
-                context.theme.resolveAttribute(R.attr.colorPrimary, this, true)
-                data
-            }), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
             if (unread) append("未读", TagSpan(TypedValue().run {
                 context.theme.resolveAttribute(R.attr.colorPrimaryVariant, this, true)
                 data
             }, TypedValue().run {
                 context.theme.resolveAttribute(R.attr.colorOnPrimary, this, true)
+                data
+            }), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+            append("$notification", ForegroundColorSpan(TypedValue().run {
+                context.theme.resolveAttribute(R.attr.colorPrimary, this, true)
                 data
             }), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
         }
@@ -172,6 +172,7 @@ data class Post constructor(
             context.theme.resolveAttribute(R.attr.colorPrimary, this, true)
             data
         }), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+        append(' ')
     }
 
     fun contentWithLink(context: Context) =
@@ -181,7 +182,6 @@ data class Post constructor(
     fun replyCount() = replyCount.toString()
     fun readCount() = readCount.toString()
     fun titleMaxLines() = Int.MAX_VALUE
-    fun contentMaxLines() = if (showInDetail) Int.MAX_VALUE else 4
 
     @ExperimentalUnsignedTypes
     private fun iconTint(context: Context, boolean: Boolean) = ColorStateList.valueOf(
