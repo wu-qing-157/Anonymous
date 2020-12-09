@@ -8,6 +8,8 @@ import android.view.Gravity
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
+import android.view.animation.AccelerateInterpolator
+import android.view.animation.DecelerateInterpolator
 import android.view.inputmethod.InputMethodManager
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
@@ -23,6 +25,7 @@ import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.SimpleItemAnimator
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.google.android.material.shape.MaterialShapeDrawable
 import com.google.android.material.snackbar.Snackbar
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -221,6 +224,9 @@ class PostDetailActivity : AppCompatActivity() {
             binding.replyHint.isCounterEnabled = !it.isNullOrBlank()
         }
         binding.replySubmit.setOnClickListener { model.reply(binding.reply) }
+        binding.bottomBar.background = MaterialShapeDrawable.createWithElevationOverlay(
+            this, binding.bottomBar.elevation
+        )
 
         model.post.observe(context) {
             if (adapter.currentList.size > 1) adapter.notifyItemChanged(0)
@@ -265,18 +271,18 @@ class PostDetailActivity : AppCompatActivity() {
 
         model.more(context)
         window.enterTransition = Slide(Gravity.END).apply {
-//            interpolator = DecelerateInterpolator()
+            interpolator = DecelerateInterpolator()
             excludeTarget(android.R.id.statusBarBackground, true)
         }
         window.returnTransition = Slide(Gravity.END).apply {
-//            interpolator = AccelerateInterpolator()
+            interpolator = AccelerateInterpolator()
             excludeTarget(android.R.id.statusBarBackground, true)
         }
         window.exitTransition = Slide(Gravity.START).apply {
-//            interpolator = AccelerateInterpolator()
+            interpolator = AccelerateInterpolator()
         }
         window.reenterTransition = Slide(Gravity.START).apply {
-//            interpolator = DecelerateInterpolator()
+            interpolator = DecelerateInterpolator()
         }
         setEnterSharedElementCallback(object : SharedElementCallback() {
             override fun onSharedElementsArrived(
@@ -292,7 +298,7 @@ class PostDetailActivity : AppCompatActivity() {
             addTransition(TransitionSet().apply {
                 addTransition(ChangeBounds())
                 addTransition(ChangeClipBounds())
-//                addTransition(ChangeTransform())
+                addTransition(ChangeTransform())
             })
         }
         if (savedInstanceState?.getBoolean("recreate") == true) flag = RecreateFlag.RECREATE

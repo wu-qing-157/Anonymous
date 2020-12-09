@@ -99,10 +99,12 @@ data class Post constructor(
         nameG = NameG(json.getString("AnonymousType"), json.getLong("RandomSeed")),
         myTag = Tag.values().firstOrNull { it.backend == json.optString("MyTag") },
         unread = json.optInt("Judge", 1) == 0,
-        notification = when (val count = json.optInt("Type", -1)) {
-            -1 -> null
-            0 -> "有新回复"
-            else -> "$count 人赞了你"
+        notification = with(json.optInt("Judge", 1) == 0) {
+            when (val count = json.optInt("Type", -1)) {
+                -1 -> null
+                0 -> if (this) "有新回复" else "已读回复"
+                else -> if (this) "新增 $count 个赞" else "$count 人赞了"
+            }
         }
     )
 
@@ -121,7 +123,7 @@ data class Post constructor(
             data
         }), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
         if (tag != null) append(tag.display, TagSpan(TypedValue().run {
-            context.theme.resolveAttribute(R.attr.colorSecondaryVariant, this, true)
+            context.theme.resolveAttribute(R.attr.colorSecondary, this, true)
             data
         }, TypedValue().run {
             context.theme.resolveAttribute(R.attr.colorOnSecondary, this, true)
@@ -132,17 +134,19 @@ data class Post constructor(
 
     fun unread(context: Context): CharSequence = SpannableStringBuilder().apply {
         if (notification != null) {
-            if (unread) append("未读", TagSpan(TypedValue().run {
-                context.theme.resolveAttribute(R.attr.colorPrimaryVariant, this, true)
-                data
-            }, TypedValue().run {
-                context.theme.resolveAttribute(R.attr.colorOnPrimary, this, true)
-                data
-            }), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
-            append("$notification", ForegroundColorSpan(TypedValue().run {
-                context.theme.resolveAttribute(R.attr.colorPrimary, this, true)
-                data
-            }), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+            if (unread) {
+                append("未读", TagSpan(TypedValue().run {
+                    context.theme.resolveAttribute(R.attr.colorPrimaryVariant, this, true)
+                    data
+                }, TypedValue().run {
+                    context.theme.resolveAttribute(R.attr.colorOnPrimary, this, true)
+                    data
+                }), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+                append("$notification", ForegroundColorSpan(TypedValue().run {
+                    context.theme.resolveAttribute(R.attr.colorPrimary, this, true)
+                    data
+                }), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+            } else append("$notification")
         }
     }
 
@@ -162,7 +166,7 @@ data class Post constructor(
             data
         }), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
         append(tag?.display ?: "点踩较多", TagSpan(TypedValue().run {
-            context.theme.resolveAttribute(R.attr.colorSecondaryVariant, this, true)
+            context.theme.resolveAttribute(R.attr.colorSecondary, this, true)
             data
         }, TypedValue().run {
             context.theme.resolveAttribute(R.attr.colorOnSecondary, this, true)
@@ -182,6 +186,7 @@ data class Post constructor(
     fun replyCount() = replyCount.toString()
     fun readCount() = readCount.toString()
     fun titleMaxLines() = Int.MAX_VALUE
+    fun contentMaxLines() = if (showInDetail) Int.MAX_VALUE else 4
 
     @ExperimentalUnsignedTypes
     private fun iconTint(context: Context, boolean: Boolean) = ColorStateList.valueOf(
@@ -458,7 +463,6 @@ fun CardView.magic(post: Post) {
         isFocusable = false
         rippleColor = ColorStateList.valueOf(0xffffff)
     }
-    if (!binding.post!!.showInDetail) binding.content.apply { maxHeight = 5 * lineHeight }
     binding.unread.visibility =
         if (binding.post!!.showInDetail || binding.post!!.notification == null) View.GONE
         else View.VISIBLE

@@ -113,7 +113,7 @@ fun Context.launchCustomTab(uri: Uri) {
     CustomTabsIntent.Builder().apply {
         setDefaultColorSchemeParams(CustomTabColorSchemeParams.Builder().run {
             setToolbarColor(TypedValue().apply {
-                theme.resolveAttribute(R.attr.colorPrimary, this, true)
+                theme.resolveAttribute(android.R.attr.statusBarColor, this, true)
             }.data)
             build()
         })

@@ -42,14 +42,14 @@
 
     <style name="OverlayToolbarStyleSurface">
         <item name="android:statusBarColor">?colorSurface</item>
-        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowLightStatusBar">?attr/isLightTheme</item>
         <item name="fabStyle">@style/FloatingActionButtonSurface</item>
         <item name="toolbarStyle">@style/Widget.MaterialComponents.Toolbar.Surface</item>
         <item name="appBarLayoutStyle">@style/ThemeOverlay.AppCompat.DayNight.ActionBar</item>
     </style>
 
     <style name="OverlayToolbarStylePrimary">
-        <item name="android:statusBarColor">?colorPrimary</item>
+        <item name="android:statusBarColor">?colorPrimarySurface</item>
         <item name="android:windowLightStatusBar">false</item>
         <item name="fabStyle">@style/Widget.MaterialComponents.FloatingActionButton</item>
         <item name="toolbarStyle">@style/Widget.MaterialComponents.Toolbar.PrimarySurface</item>

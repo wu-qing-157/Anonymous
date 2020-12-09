@@ -5,10 +5,14 @@ import android.animation.AnimatorListenerAdapter
 import android.app.ActivityOptions
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.content.res.ColorStateList
 import android.net.Uri
 import android.os.Bundle
 import android.transition.*
+import android.util.TypedValue
 import android.view.*
+import android.view.animation.AccelerateInterpolator
+import android.view.animation.DecelerateInterpolator
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.PopupMenu
@@ -26,6 +30,7 @@ import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.SimpleItemAnimator
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.google.android.material.shape.MaterialShapeDrawable
 import com.google.android.material.snackbar.Snackbar
 import com.google.android.material.transition.platform.*
 import kotlinx.coroutines.delay
@@ -79,10 +84,10 @@ class MainActivity : AppCompatActivity() {
         } ?: -1)
         setExitSharedElementCallback(null as SharedElementCallback?)
         window.exitTransition = Slide(Gravity.START).apply {
-//            interpolator = AccelerateInterpolator()
+            interpolator = AccelerateInterpolator()
         }
         window.reenterTransition = Slide(Gravity.START).apply {
-//            interpolator = DecelerateInterpolator()
+            interpolator = DecelerateInterpolator()
         }
         startActivityForResult(intent, POST_DETAIL, options.toBundle())
     }
@@ -363,6 +368,15 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         }
+        binding.drawerNav.getHeaderView(0).background =
+            MaterialShapeDrawable.createWithElevationOverlay(
+                this, binding.drawerNav.elevation
+            ).apply {
+                fillColor = ColorStateList.valueOf(TypedValue().run {
+                    theme.resolveAttribute(android.R.attr.statusBarColor, this, true)
+                    data
+                })
+            }
 
         if (savedInstanceState?.getBoolean("recreate") != true) model.more(this)
     }
