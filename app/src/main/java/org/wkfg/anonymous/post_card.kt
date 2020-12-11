@@ -395,7 +395,7 @@ fun CardView.magic(post: Post) {
                                 Snackbar.LENGTH_SHORT
                             ).show()
                         }
-                        if (context.getSharedPreferences("blocked", Context.MODE_PRIVATE)
+                        if (!context.getSharedPreferences("blocked", Context.MODE_PRIVATE)
                                 .getBoolean("notified", false)
                         ) MaterialAlertDialogBuilder(context).apply {
                             setTitle("屏蔽说明")

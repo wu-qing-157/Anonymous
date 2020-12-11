@@ -27,9 +27,6 @@
             android:label="@string/title_activity_login"
             android:theme="@style/Theme.Anonymous"
             android:windowSoftInputMode="adjustResize">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-            </intent-filter>
         </activity>
         <activity
             android:name=".MainActivity"
@@ -62,9 +59,6 @@
             android:parentActivityName=".MainActivity"
             android:theme="@style/Theme.Anonymous.NoActionBar"
             android:windowSoftInputMode="adjustResize">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-            </intent-filter>
         </activity>
     </application>
 

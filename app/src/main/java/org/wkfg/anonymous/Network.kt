@@ -239,13 +239,25 @@ object Network {
         MUST, NEED, NO,
     }
 
+    data class CheckVersionInfo(
+        val url: String,
+        val type: UpgradeStatus,
+        val new: Int,
+        val description: String,
+    )
+
     suspend fun checkVersion(current: Int) = withContext(Dispatchers.IO) {
         getData(op = "g", p1 = "android", p2 = current.toString(), checkLogin = false) {
-            when {
-                optInt("MustUpdate") == 1 -> UpgradeStatus.MUST
-                optInt("NeedUpdate") == 1 -> UpgradeStatus.NEED
-                else -> UpgradeStatus.NO
-            } to optString("UpdateUrl", "https://github.com/wu-qing-157/Anonymous")
+            CheckVersionInfo(
+                url = optString("UpdateUrl", "https://github.com/wu-qing-157/Anonymous"),
+                type = when {
+                    optInt("MustUpdate") == 1 -> UpgradeStatus.MUST
+                    optInt("NeedUpdate") == 1 -> UpgradeStatus.NEED
+                    else -> UpgradeStatus.NO
+                },
+                new = optInt("NewCode"),
+                description = optString("UpdateDesc"),
+            )
         }
     }
 }

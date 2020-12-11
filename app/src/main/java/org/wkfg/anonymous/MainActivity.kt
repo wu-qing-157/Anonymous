@@ -131,37 +131,49 @@ class MainActivity : AppCompatActivity() {
 
     private fun checkUpdate() = lifecycleScope.launch {
         try {
-            val (status, url) = Network.checkVersion(BuildConfig.VERSION_CODE)
+            val (url, status, new, description) = Network.checkVersion(BuildConfig.VERSION_CODE)
             when (status) {
                 Network.UpgradeStatus.MUST ->
-                    MaterialAlertDialogBuilder(this@MainActivity).apply {
+                    MaterialAlertDialogBuilder(this@MainActivity).run {
                         setTitle("必须更新无可奉告才能使用")
-                        setMessage("请更新无可奉告，否则可能会遇到严重的问题，点击 好的 将直接开始下载。")
-                        setPositiveButton("好的") { _, _ -> launchCustomTab(Uri.parse(url)) }
+                        val s = "请更新无可奉告，否则可能会遇到严重的问题，点击 好的 将直接开始下载。"
+                        setMessage(
+                            if (description.isBlank()) s
+                            else "$s\n\n以下为更新内容：\n\n$description"
+                        )
+                        setPositiveButton("好的") { _, _ ->
+                            launchCustomTab(Uri.parse(url))
+                            show()
+                        }
                         setNegativeButton("一会再更新") { _, _ -> finish() }
                         setCancelable(false)
                         show()
                     }
                 Network.UpgradeStatus.NEED ->
-                    if (BuildConfig.VERSION_CODE.toString() !in
+                    if (new.toString() !in
                         getSharedPreferences("skip_version", MODE_PRIVATE)
-                    )
-                        MaterialAlertDialogBuilder(this@MainActivity).apply {
-                            setTitle("无可奉告有更新")
-                            setMessage("更新无可奉告来体验新功能，点击 好的 将直接开始下载。")
-                            setPositiveButton("好的") { _, _ -> launchCustomTab(Uri.parse(url)) }
-                            setNeutralButton("下次打开时再提醒我", null)
-                            setNegativeButton("下次重大更新前不再提醒") { _, _ ->
+                    ) MaterialAlertDialogBuilder(this@MainActivity).apply {
+                        setTitle("无可奉告有可选更新")
+                        val s = "更新无可奉告来体验新功能，点击下方按钮将直接开始下载。"
+                        setMessage(
+                            if (description.isBlank()) s
+                            else "$s\n\n以下为更新内容：\n\n$description"
+                        )
+                        setPositiveButton("好的") { _, _ -> launchCustomTab(Uri.parse(url)) }
+                        setNeutralButton("下次打开时再提醒我", null)
+                        if (new > BuildConfig.VERSION_CODE) {
+                            setNegativeButton("该版本不再提醒") { _, _ ->
                                 with(
                                     getSharedPreferences("skip_version", MODE_PRIVATE).edit()
                                 ) {
-                                    putBoolean(BuildConfig.VERSION_CODE.toString(), true)
+                                    putBoolean(new.toString(), true)
                                     apply()
                                 }
                             }
-                            setCancelable(false)
-                            show()
                         }
+                        setCancelable(false)
+                        show()
+                    }
                 Network.UpgradeStatus.NO -> Unit
             }
         } catch (e: Exception) {
@@ -197,7 +209,7 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         loadToken()
         verifyToken()
-        checkUpdate()
+        if (savedInstanceState?.getBoolean("recreate") != true) checkUpdate()
         removeOld()
         val adapter = PostAdapter(
             postInit = {
@@ -301,10 +313,17 @@ class MainActivity : AppCompatActivity() {
         }
         binding.swipeRefresh.setOnRefreshListener { model.refresh(this@MainActivity) }
         binding.refresh.setOnClickListener {
-            binding.recycle.smoothScrollToPosition(0)
-            model.viewModelScope.launch {
-                delay(500)
-                model.refresh(this@MainActivity)
+            if (with(binding.recycle.layoutManager as LinearLayoutManager) {
+                    findFirstCompletelyVisibleItemPosition() >= 25
+                }) {
+                adapter.submitList(listOf())
+                model.refresh(this)
+            } else {
+                binding.recycle.smoothScrollToPosition(0)
+                model.viewModelScope.launch {
+                    delay(500)
+                    model.refresh(this@MainActivity)
+                }
             }
         }
 
@@ -345,10 +364,17 @@ class MainActivity : AppCompatActivity() {
         }
         binding.bottomNav.setOnNavigationItemReselectedListener {
             if (!model.updateNav) {
-                binding.recycle.smoothScrollToPosition(0)
-                model.viewModelScope.launch {
-                    delay(500)
-                    model.refresh(this@MainActivity)
+                if (with(binding.recycle.layoutManager as LinearLayoutManager) {
+                        findFirstCompletelyVisibleItemPosition() >= 30
+                    }) {
+                    adapter.submitList(listOf())
+                    model.refresh(this)
+                } else {
+                    binding.recycle.smoothScrollToPosition(0)
+                    model.viewModelScope.launch {
+                        delay(500)
+                        model.refresh(this@MainActivity)
+                    }
                 }
             }
         }
@@ -378,7 +404,7 @@ class MainActivity : AppCompatActivity() {
                 })
             }
 
-        if (savedInstanceState?.getBoolean("recreate") != true) model.more(this)
+        model.more(this)
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
@@ -398,8 +424,17 @@ class MainActivity : AppCompatActivity() {
             with(actionView as SearchView) {
                 setOnQueryTextListener(object : SearchView.OnQueryTextListener {
                     override fun onQueryTextChange(newText: String?) = false
-                    override fun onQueryTextSubmit(query: String?) = true.also {
+                    override fun onQueryTextSubmit(query: String?): Boolean {
+                        query ?: return true
+//                        Regex("#?([0-9]{6})").matchEntire(query)?.let {
+//                            startActivity(
+//                                Intent(
+//                                    Intent.ACTION_VIEW, Uri.parse("wkfg://${it.groupValues[1]}")
+//                                )
+//                            )
+//                        } ?: run { model.search.value = query }
                         model.search.value = query
+                        return false
                     }
                 })
                 // TODO: search bar transition

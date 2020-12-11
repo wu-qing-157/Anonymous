@@ -62,7 +62,7 @@
         <item name="colorOnPrimary">@color/white</item>
         <item name="colorSecondary">@color/teal_200</item>
         <item name="colorSecondaryVariant">@color/teal_700</item>
-        <item name="colorOnSecondary">@color/black</item>
+        <item name="colorOnSecondary">@color/white</item>
     </style>
 
     <style name="OverlayColorPurple">
@@ -71,7 +71,7 @@
         <item name="colorOnPrimary">@color/white</item>
         <item name="colorSecondary">#dda5ad</item>
         <item name="colorSecondaryVariant">#aa767e</item>
-        <item name="colorOnSecondary">@color/black</item>
+        <item name="colorOnSecondary">@color/white</item>
     </style>
 
     <style name="OverlayColorGreen">
@@ -80,7 +80,7 @@
         <item name="colorOnPrimary">@color/white</item>
         <item name="colorSecondary">#e27866</item>
         <item name="colorSecondaryVariant">#ac4a3b</item>
-        <item name="colorOnSecondary">@color/black</item>
+        <item name="colorOnSecondary">@color/white</item>
     </style>
 
     <style name="OverlayColorRed">
@@ -89,7 +89,7 @@
         <item name="colorOnPrimary">@color/white</item>
         <item name="colorSecondary">#db615b</item>
         <item name="colorSecondaryVariant">#a53131</item>
-        <item name="colorOnSecondary">@color/black</item>
+        <item name="colorOnSecondary">@color/white</item>
     </style>
 
     <style name="OverlayColorOrange">
@@ -98,7 +98,7 @@
         <item name="colorOnPrimary">@color/white</item>
         <item name="colorSecondary">#db7d98</item>
         <item name="colorSecondaryVariant">#a74e6a</item>
-        <item name="colorOnSecondary">@color/black</item>
+        <item name="colorOnSecondary">@color/white</item>
     </style>
 
     <style name="OverlayColorBrown">
@@ -116,6 +116,6 @@
         <item name="colorOnPrimary">@color/black</item>
         <item name="colorSecondary">#009688</item>
         <item name="colorSecondaryVariant">#00675b</item>
-        <item name="colorOnSecondary">@color/black</item>
+        <item name="colorOnSecondary">@color/white</item>
     </style>
 </resources>
