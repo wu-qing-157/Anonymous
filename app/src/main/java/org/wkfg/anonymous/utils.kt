@@ -211,7 +211,7 @@ fun SpannableString.links(activity: Activity): List<Pair<String, () -> Unit>> {
                     raw.range.first + it.range.first, raw.range.first + it.range.last + 1,
                     Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
                 )
-                ret += it.value
+                ret += "访问 " + it.value
                     .replace(Regex("^https?://"), "")
                     .replace(Regex("^www\\."), "")
                     .run {
@@ -256,7 +256,27 @@ fun SpannableString.links(activity: Activity): List<Pair<String, () -> Unit>> {
             }, it.range.first, it.range.last + 1,
             Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
         )
-        ret += it.value to action
+        ret += "跳转到 " + it.value to action
+    }
+    Regex(Patterns.EMAIL_ADDRESS.pattern()).findAll(this).forEach {
+        getSpans(
+            it.range.first, it.range.last + 1, ClickableSpan::class.java
+        ).forEach(this::removeSpan)
+        setSpan(
+            object : ClickableSpan() {
+                override fun onClick(widget: View) {
+                    activity.startActivity(
+                        Intent(Intent.ACTION_VIEW, Uri.parse("mailto:${it.value}"))
+                    )
+                }
+            }, it.range.first, it.range.last + 1,
+            Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+        )
+        ret += "发送邮件到 " + it.value to {
+            activity.startActivity(
+                Intent(Intent.ACTION_VIEW, Uri.parse("mailto:${it.value}"))
+            )
+        }
     }
     return ret
 }

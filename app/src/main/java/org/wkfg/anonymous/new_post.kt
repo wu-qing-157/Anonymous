@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
+import android.util.Log
 import android.util.TypedValue
 import android.view.*
 import androidx.activity.viewModels
@@ -136,6 +137,10 @@ class NewPostActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         postponeEnterTransition()
         loadToken()
+        if (intent?.action == Intent.ACTION_SEND) {
+            Log.d("trysend", intent.type ?: "null")
+            Log.d("trysenddata", intent.getStringExtra(Intent.EXTRA_TEXT) ?: "null")
+        }
         binding =
             DataBindingUtil.setContentView<ActivityNewBinding>(this, R.layout.activity_new).apply {
                 theme.tag = NameTheme.ALICE_AND_BOB

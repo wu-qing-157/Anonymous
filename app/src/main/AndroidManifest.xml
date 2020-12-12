@@ -26,8 +26,7 @@
             android:name=".LoginActivity"
             android:label="@string/title_activity_login"
             android:theme="@style/Theme.Anonymous"
-            android:windowSoftInputMode="adjustResize">
-        </activity>
+            android:windowSoftInputMode="adjustResize" />
         <activity
             android:name=".MainActivity"
             android:label="@string/app_name"
@@ -59,6 +58,11 @@
             android:parentActivityName=".MainActivity"
             android:theme="@style/Theme.Anonymous.NoActionBar"
             android:windowSoftInputMode="adjustResize">
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />
+            </intent-filter>
         </activity>
     </application>
 
